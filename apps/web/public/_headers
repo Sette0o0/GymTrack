@@ -1,0 +1,11 @@
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/offline-assets.json
+  Cache-Control: no-cache
+/*.html
+  Cache-Control: no-cache
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

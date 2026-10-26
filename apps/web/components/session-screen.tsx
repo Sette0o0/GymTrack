@@ -1,0 +1,568 @@
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Pause,
+  Play,
+  Plus,
+  SkipForward,
+  Square,
+  Trash2,
+  Undo2,
+} from "lucide-react"
+import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
+import { Progress } from "@workspace/ui/components/progress"
+import { useApp } from "./app-shell"
+import {
+  ConfirmAction,
+  EmptyState,
+  Field,
+  PageHeading,
+  TextLink,
+} from "./ui-helpers"
+import { targetLabel } from "./workouts-screen"
+import {
+  addSet,
+  changeSession,
+  removeSet,
+  sessionNote,
+  toggleTimer,
+  updateSet,
+} from "@/services/sessions"
+import {
+  duration,
+  numberValue,
+  secondsValue,
+  weight,
+  type SetRecord,
+} from "@/lib/schema"
+
+export function SessionScreen() {
+  const { data, run, busy, unsaved, settle } = useApp()
+  const [index, setIndex] = useState(0)
+  const [requestedId] = useState(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("id")
+  )
+  if (!data) return null
+  const session = requestedId
+    ? data.workoutSessions.find((row) => row.id === requestedId)
+    : data.workoutSessions.find((row) => row.status !== "completed")
+  if (!session)
+    return (
+      <EmptyState
+        title="Nenhum treino em andamento"
+        action={
+          <a href="/treinos/" className="button-link">
+            Escolher ficha
+          </a>
+        }
+      >
+        Inicie uma ficha para registrar suas séries.
+      </EmptyState>
+    )
+  if (session.status === "completed")
+    return (
+      <EmptyState
+        title="Treino concluído"
+        action={
+          <a href={`/historico/?id=${session.id}`} className="button-link">
+            Ver registro
+          </a>
+        }
+      >
+        Seu esforço está registrado no histórico.
+      </EmptyState>
+    )
+  const exercises = data.sessionExercises
+    .filter((row) => row.sessionId === session.id)
+    .sort((a, b) => a.order - b.order)
+  const exercise = exercises[Math.min(index, exercises.length - 1)]
+  if (!exercise)
+    return (
+      <EmptyState title="Sessão sem exercícios">
+        Restaure um backup válido ou encerre esta sessão nas configurações.
+      </EmptyState>
+    )
+  const sets = data.setRecords
+    .filter((row) => row.sessionExerciseId === exercise.id)
+    .sort((a, b) => a.setNumber - b.setNumber)
+  const allSets = data.setRecords.filter((row) =>
+    exercises.some((item) => item.id === row.sessionExerciseId)
+  )
+  const done = allSets.filter((row) => row.status !== "pending").length
+  const completed = data.workoutSessions.filter(
+    (row) => row.status === "completed"
+  )
+  const previous = data.sessionExercises
+    .filter(
+      (row) =>
+        row.exerciseId === exercise.exerciseId &&
+        row.type === exercise.type &&
+        completed.some((session) => session.id === row.sessionId)
+    )
+    .sort(
+      (a, b) =>
+        (completed.find((row) => row.id === b.sessionId)?.startedAt ?? 0) -
+        (completed.find((row) => row.id === a.sessionId)?.startedAt ?? 0)
+    )[0]
+  const previousSets = previous
+    ? data.setRecords
+        .filter(
+          (row) =>
+            row.sessionExerciseId === previous.id && row.status === "completed"
+        )
+        .sort((a, b) => a.setNumber - b.setNumber)
+    : []
+  const paused = session.status === "paused"
+  async function changeExercise(next: number) {
+    if (await settle()) setIndex(next)
+  }
+  return (
+    <>
+      <PageHeading
+        eyebrow={
+          paused
+            ? "VOCÊ PODE CONTINUAR QUANDO QUISER"
+            : "FOCO EM UMA SÉRIE DE CADA VEZ"
+        }
+        title={`${session.workoutCode} · ${session.workoutName}`}
+        description={
+          paused
+            ? "Treino pausado. Seus registros continuam salvos."
+            : "Os valores são salvos a cada alteração. Você só precisa treinar."
+        }
+        action={<TextLink href="/">Voltar ao início</TextLink>}
+      />
+      <div className="session-progress">
+        <p>
+          <span>
+            {done} de {allSets.length} séries registradas
+          </span>
+          <strong>
+            {allSets.length ? Math.round((done / allSets.length) * 100) : 0}%
+          </strong>
+        </p>
+        <Progress
+          aria-label="Progresso das séries do treino"
+          value={allSets.length ? (done / allSets.length) * 100 : 0}
+        />
+      </div>
+      <div className="exercise-tabs" aria-label="Exercícios da sessão">
+        {exercises.map((item, current) => (
+          <Button
+            key={item.id}
+            variant={item.id === exercise.id ? "default" : "outline"}
+            onClick={() => changeExercise(current)}
+          >
+            {current + 1}. {item.nameSnapshot}
+          </Button>
+        ))}
+      </div>
+      <section className="panel">
+        <div className="exercise-title">
+          <span className="workout-letter tone-0">{index + 1}</span>
+          <div>
+            <h2>{exercise.nameSnapshot}</h2>
+            <p>Meta: {targetLabel(exercise)}</p>
+          </div>
+        </div>
+        {exercise.notesSnapshot && (
+          <p className="fixed-note">{exercise.notesSnapshot}</p>
+        )}
+        {previousSets.length > 0 && (
+          <p className="subtle mb-4">
+            Última sessão concluída:{" "}
+            {previousSets
+              .map((row) =>
+                row.type === "time"
+                  ? duration(row.durationSeconds)
+                  : `${weight(row.weightKg)} kg × ${row.repetitions}`
+              )
+              .join(" · ")}
+          </p>
+        )}
+        {paused && (
+          <div className="success-banner flex flex-wrap items-center justify-between gap-3">
+            <span>Treino pausado.</span>
+            <Button
+              disabled={busy}
+              onClick={() => run(() => changeSession(session.id, "active"))}
+            >
+              <Play size={16} />
+              Retomar treino
+            </Button>
+          </div>
+        )}
+        {sets.map((set) => (
+          <SetRow key={set.id} set={set} disabled={paused} />
+        ))}
+        <div className="form-actions">
+          <Button
+            variant="outline"
+            disabled={busy || paused}
+            onClick={() => run(() => addSet(exercise.id))}
+          >
+            <Plus size={16} />
+            Adicionar série
+          </Button>
+          <span className="save-indicator" role="status">
+            {busy
+              ? "Salvando…"
+              : unsaved
+                ? "Há alterações não salvas"
+                : "Alterações gravadas"}
+          </span>
+        </div>
+        <div className="mt-6">
+          <Field label="Observação deste exercício nesta sessão">
+            {(id) => (
+              <Textarea
+                key={exercise.id}
+                id={id}
+                maxLength={10000}
+                disabled={paused}
+                defaultValue={exercise.sessionNotes}
+                placeholder="Como foi hoje? Algo para lembrar no próximo treino?"
+                onChange={(event) => {
+                  const text = event.target.value
+                  void run(
+                    () => sessionNote(exercise.id, text, true),
+                    `notes:${exercise.id}`
+                  )
+                }}
+              />
+            )}
+          </Field>
+        </div>
+        <div className="session-bottom">
+          <Button
+            variant="outline"
+            disabled={index === 0}
+            onClick={() => changeExercise(index - 1)}
+          >
+            <ArrowLeft size={16} />
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            disabled={index === exercises.length - 1}
+            onClick={() => changeExercise(index + 1)}
+          >
+            Próximo exercício
+            <ArrowRight size={16} />
+          </Button>
+        </div>
+      </section>
+      <section className="panel">
+        <Field label="Observação geral do treino">
+          {(id) => (
+            <Textarea
+              id={id}
+              disabled={paused}
+              maxLength={10000}
+              defaultValue={session.notes}
+              placeholder="Como você se sentiu neste treino?"
+              onChange={(event) => {
+                const text = event.target.value
+                void run(
+                  () => sessionNote(session.id, text),
+                  `notes:${session.id}`
+                )
+              }}
+            />
+          )}
+        </Field>
+        <div className="form-actions">
+          {!paused && (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={async () => {
+                if (await settle())
+                  await run(() => changeSession(session.id, "paused"))
+              }}
+            >
+              <Pause size={16} />
+              Pausar treino
+            </Button>
+          )}
+          <ConfirmAction
+            disabled={busy}
+            label={
+              <>
+                <Check size={16} />
+                Finalizar treino
+              </>
+            }
+            title="Finalizar este treino?"
+            description={
+              allSets.some((row) => row.status === "pending")
+                ? "Existem séries pendentes. Elas serão registradas como ignoradas. Tudo o que você concluiu e suas observações serão preservados."
+                : "Suas séries e observações ficarão disponíveis no histórico."
+            }
+            onConfirm={async () => {
+              if (!(await settle())) return
+              const saved = await run(async () => {
+                await changeSession(session.id, "completed")
+                return true
+              })
+              if (saved) window.location.assign(`/historico/?id=${session.id}`)
+            }}
+          />
+        </div>
+      </section>
+    </>
+  )
+}
+
+function SetRow({ set, disabled }: { set: SetRecord; disabled: boolean }) {
+  const { run, busy, settle } = useApp()
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (set.type !== "time" || set.timerStartedAt === null) return
+    const interval = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(interval)
+  }, [set])
+  const running = set.type === "time" && set.timerStartedAt !== null
+  const elapsed =
+    running && set.type === "time"
+      ? Math.max(0, Math.floor((now - set.timerStartedAt!) / 1000))
+      : 0
+  return (
+    <div
+      className={`set-row ${set.status === "completed" ? "is-completed" : ""}`}
+    >
+      <span className="order-number">{set.setNumber}</span>
+      {set.type === "weight_reps" ? (
+        <>
+          <EditableValue
+            label={`Carga da série ${set.setNumber} (kg)`}
+            fieldKey={`${set.id}/weight`}
+            value={set.weightKg}
+            disabled={disabled}
+            parse={numberValue}
+            max={10000}
+            min={0}
+            onValue={(value) =>
+              run(
+                () => updateSet(set.id, { weightKg: value }),
+                `${set.id}/weight`
+              )
+            }
+          />
+          <EditableValue
+            label={`Repetições da série ${set.setNumber}`}
+            fieldKey={`${set.id}/reps`}
+            value={set.repetitions}
+            disabled={disabled}
+            parse={numberValue}
+            max={10000}
+            min={1}
+            integer
+            onValue={(value) =>
+              run(
+                () => updateSet(set.id, { repetitions: value }),
+                `${set.id}/reps`
+              )
+            }
+          />
+        </>
+      ) : (
+        <>
+          <EditableValue
+            label={`Duração da série ${set.setNumber}`}
+            fieldKey={`${set.id}/time`}
+            value={set.durationSeconds}
+            disabled={disabled || running}
+            parse={secondsValue}
+            max={86400}
+            min={1}
+            integer
+            format={duration}
+            onValue={(value) =>
+              run(
+                () => updateSet(set.id, { durationSeconds: value }),
+                `${set.id}/time`
+              )
+            }
+          />
+          <div className="field">
+            <span className="subtle">Cronômetro</span>
+            {running ? (
+              <span className="timer-value" role="timer">
+                {duration(elapsed)}
+              </span>
+            ) : (
+              <span className="subtle">Medição de uma nova série</span>
+            )}
+            <Button
+              variant="outline"
+              disabled={disabled || busy || set.status !== "pending"}
+              onClick={async () => {
+                if (await settle()) await run(() => toggleTimer(set.id))
+              }}
+            >
+              {running ? (
+                <>
+                  <Square size={14} />
+                  Parar
+                </>
+              ) : (
+                <>
+                  <Play size={14} />
+                  Cronometrar
+                </>
+              )}
+            </Button>
+          </div>
+        </>
+      )}
+      <div className="set-buttons">
+        <Button
+          aria-label={`${set.status === "completed" ? "Desfazer" : "Concluir"} série ${set.setNumber}`}
+          disabled={disabled || busy || running}
+          variant={set.status === "completed" ? "default" : "outline"}
+          onClick={async () => {
+            if (await settle())
+              await run(() =>
+                updateSet(set.id, {
+                  status: set.status === "completed" ? "pending" : "completed",
+                })
+              )
+          }}
+        >
+          {set.status === "completed" ? (
+            <Undo2 size={17} />
+          ) : (
+            <Check size={17} />
+          )}
+          {set.status === "completed" ? "Feita" : "Concluir"}
+        </Button>
+        <Button
+          variant="ghost"
+          aria-label={`Ignorar série ${set.setNumber}`}
+          disabled={disabled || busy || running}
+          onClick={async () => {
+            if (await settle())
+              await run(() =>
+                updateSet(set.id, {
+                  status: set.status === "skipped" ? "pending" : "skipped",
+                })
+              )
+          }}
+        >
+          <SkipForward size={17} />
+        </Button>
+        <ConfirmAction
+          label={<Trash2 size={15} />}
+          disabled={disabled || busy || running}
+          title={`Remover série ${set.setNumber}?`}
+          description="A série e seus valores serão removidos apenas desta sessão."
+          destructive
+          onConfirm={async () => {
+            if (await settle()) await run(() => removeSet(set.id))
+          }}
+        />
+        <span className="set-status">
+          {set.status === "completed"
+            ? "Concluída"
+            : set.status === "skipped"
+              ? "Ignorada"
+              : "Pendente"}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function EditableValue({
+  label,
+  fieldKey,
+  value,
+  disabled,
+  parse,
+  format = (value) => String(value).replace(".", ","),
+  integer,
+  min,
+  max,
+  onValue,
+}: {
+  label: string
+  fieldKey: string
+  value: number
+  disabled: boolean
+  parse: (value: string) => number
+  format?: (value: number) => string
+  integer?: boolean
+  min: number
+  max: number
+  onValue: (value: number) => Promise<unknown>
+}) {
+  const { invalid } = useApp()
+  const [text, setText] = useState(() => format(value))
+  const [error, setError] = useState("")
+  const editing = useRef(false)
+  useEffect(() => {
+    if (!editing.current) setText(format(value))
+  }, [value, format])
+  useEffect(() => () => invalid(fieldKey, false), [fieldKey, invalid])
+  return (
+    <Field label={label}>
+      {(id) => (
+        <>
+          <Input
+            id={id}
+            inputMode={
+              parse === secondsValue ? "text" : integer ? "numeric" : "decimal"
+            }
+            value={text}
+            disabled={disabled}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${id}-error` : undefined}
+            onFocus={() => {
+              editing.current = true
+            }}
+            onBlur={() => {
+              editing.current = false
+            }}
+            onChange={(event) => {
+              const next = event.target.value
+              setText(next)
+              try {
+                const parsed = parse(next)
+                if (
+                  parsed < min ||
+                  parsed > max ||
+                  (integer && !Number.isInteger(parsed))
+                )
+                  throw new Error(
+                    `Use ${integer ? "um inteiro" : "um valor"} entre ${min} e ${max}.`
+                  )
+                setError("")
+                invalid(fieldKey, false)
+                void onValue(parsed)
+              } catch (cause) {
+                setError(
+                  cause instanceof Error ? cause.message : "Valor inválido"
+                )
+                invalid(fieldKey, true)
+              }
+            }}
+          />
+          {error && (
+            <span className="invalid-hint" id={`${id}-error`}>
+              {error}
+            </span>
+          )}
+        </>
+      )}
+    </Field>
+  )
+}
