@@ -66,6 +66,12 @@ O gráfico de médias simples por sessão permanece registrado no `PLANO.md` com
 - [ ] Atualizar após encerrar, reabrir offline e conferir que os registros permanecem.
 - [ ] Conferir toque, foco, contraste e ausência de rolagem horizontal da página em tema claro e escuro.
 
-## Publicação — pendente por escopo
+## Publicação na Cloudflare — 27/10/2026
 
-Conta, domínio e publicação real na Cloudflare não são configurados por esta implementação. A pasta exportada e as instruções estão no README. A aprovação dos itens de instalação/publicação depende dessa hospedagem e do acesso aos aparelhos reais.
+- Worker `gymtrack` publicado, com domínio principal **https://gymtrack.rafaelsette.com.br** vinculado por Custom Domain. Zona ativa na Cloudflare, DNS criado e HTTPS validado.
+- Domínio aplicado com `wrangler triggers deploy`, mantendo a versão do aplicativo já publicada. Configuração de domínio também registrada em `wrangler.jsonc` para as próximas publicações.
+- Respostas HTTP 200 verificadas na página inicial, fichas, exercícios, execução com ID na query string, histórico, importação, configurações, manifest, Service Worker e lista de arquivos offline.
+- Manifest identificado como GymTrack, com modo `standalone` e ícones locais. `sw.js` servido com `Cache-Control: no-cache, no-store, must-revalidate`.
+- Chromium em contexto isolado, viewport 390 × 844: aguardado “Disponível offline” na origem publicada; depois a rede foi desligada e as sete telas abriram corretamente, incluindo a URL de execução com ID preservado. Sem erros de JavaScript; nenhum dado pessoal do navegador do usuário foi usado.
+
+A instalação e o comportamento em aparelhos físicos continuam pendentes conforme o roteiro acima. Registros de outros endereços precisam ser transferidos para o domínio principal por backup JSON.

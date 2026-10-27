@@ -79,17 +79,19 @@ Um arquivo com erro não altera parcialmente o banco. Backups aceitam até 50 MB
 
 ## Publicar no Cloudflare Workers com arquivos estáticos
 
-Para o Worker `gymtrack` conectado ao GitHub, use o `wrangler.jsonc` da raiz. Ele define o nome do Worker, a data de compatibilidade e a pasta `apps/web/out`, evitando a detecção automática na raiz do monorepo. O Worker serve os arquivos estáticos; os dados continuam no IndexedDB de cada navegador.
+Para o Worker `gymtrack` conectado ao GitHub, use o `wrangler.jsonc` da raiz. Ele define o nome do Worker, a data de compatibilidade, a pasta `apps/web/out` e o domínio `gymtrack.rafaelsette.com.br`, evitando a detecção automática na raiz do monorepo. O Worker serve os arquivos estáticos; os dados continuam no IndexedDB de cada navegador.
+
+O endereço principal é **https://gymtrack.rafaelsette.com.br**. A rota usa `custom_domain: true`: a Cloudflare cria o registro DNS e o certificado HTTPS para esse subdomínio na zona ativa `rafaelsette.com.br`. O endereço `workers.dev` permanece habilitado para conferência e recuperação de backup. Use o domínio principal para a instalação e os registros diários; cada origem tem seu próprio armazenamento, sem sincronização automática. Se já tiver registros em outro endereço, transfira-os por backup JSON.
 
 Em **Workers & Pages → gymtrack → Settings → Build**, configure:
 
-| Campo | Valor |
-| --- | --- |
-| Diretório raiz | raiz do repositório |
-| Comando de build | `npm run build` |
+| Campo             | Valor                         |
+| ----------------- | ----------------------------- |
+| Diretório raiz    | raiz do repositório           |
+| Comando de build  | `npm run build`               |
 | Comando de deploy | `npx wrangler@4.154.0 deploy` |
-| `NODE_VERSION` | `24` |
-| `NPM_VERSION` | `11.21.0` |
+| `NODE_VERSION`    | `24`                          |
+| `NPM_VERSION`     | `11.21.0`                     |
 
 Envie o commit de configuração à branch conectada antes de repetir o build. Se mudar o nome do Worker, atualize também `name` no arquivo. A data `2026-10-23` é uma versão de compatibilidade do runtime, mantida fixa; não precisa acompanhar a data de cada publicação.
 
@@ -99,6 +101,8 @@ Para validar a configuração localmente sem publicar:
 npm run build
 npx wrangler@4.154.0 deploy --dry-run
 ```
+
+Para reaplicar somente os vínculos de domínio, mantendo a versão já publicada do aplicativo, use `npx wrangler@4.154.0 triggers deploy`. Esse comando também aplica os agendamentos do Worker; o GymTrack não tem agendamentos.
 
 Consulte a [configuração do Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) e as [datas de compatibilidade](https://developers.cloudflare.com/workers/configuration/compatibility-dates/). Após publicar, use o endereço definitivo do Worker no celular, aguarde “Disponível offline” e adicione à tela inicial. Para levar os dados do computador, exporte e restaure um backup JSON.
 
