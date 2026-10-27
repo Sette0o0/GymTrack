@@ -77,9 +77,34 @@ O formato `gymtrack-backup`, esquema 2, contém data de exportação e as sete t
 
 Um arquivo com erro não altera parcialmente o banco. Backups aceitam até 50 MB. O aplicativo lembra de exportar novamente após sete dias desde o último backup gerado (ou desde os primeiros registros).
 
+## Publicar no Cloudflare Workers com arquivos estáticos
+
+Para o Worker `gymtrack` conectado ao GitHub, use o `wrangler.jsonc` da raiz. Ele define o nome do Worker, a data de compatibilidade e a pasta `apps/web/out`, evitando a detecção automática na raiz do monorepo. O Worker serve os arquivos estáticos; os dados continuam no IndexedDB de cada navegador.
+
+Em **Workers & Pages → gymtrack → Settings → Build**, configure:
+
+| Campo | Valor |
+| --- | --- |
+| Diretório raiz | raiz do repositório |
+| Comando de build | `npm run build` |
+| Comando de deploy | `npx wrangler@4.154.0 deploy` |
+| `NODE_VERSION` | `24` |
+| `NPM_VERSION` | `11.21.0` |
+
+Envie o commit de configuração à branch conectada antes de repetir o build. Se mudar o nome do Worker, atualize também `name` no arquivo. A data `2026-10-23` é uma versão de compatibilidade do runtime, mantida fixa; não precisa acompanhar a data de cada publicação.
+
+Para validar a configuração localmente sem publicar:
+
+```sh
+npm run build
+npx wrangler@4.154.0 deploy --dry-run
+```
+
+Consulte a [configuração do Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) e as [datas de compatibilidade](https://developers.cloudflare.com/workers/configuration/compatibility-dates/). Após publicar, use o endereço definitivo do Worker no celular, aguarde “Disponível offline” e adicione à tela inicial. Para levar os dados do computador, exporte e restaure um backup JSON.
+
 ## Publicar na Cloudflare Pages
 
-O projeto usa `output: "export"`, sem Workers, Functions, Server Actions ou APIs dinâmicas. Siga o [guia de exportação estática da Cloudflare](https://developers.cloudflare.com/pages/framework-guides/nextjs/deploy-a-static-nextjs-site/).
+O projeto usa `output: "export"`, sem código de aplicação no servidor, Functions, Server Actions ou APIs dinâmicas. A alternativa ao Worker estático é publicar no Pages seguindo o [guia de exportação estática da Cloudflare](https://developers.cloudflare.com/pages/framework-guides/nextjs/deploy-a-static-nextjs-site/).
 
 Configure o projeto na raiz do repositório:
 
