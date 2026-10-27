@@ -25,14 +25,24 @@ Abra http://127.0.0.1:4173. Aguarde **Disponível offline** antes de desligar a 
 ## Funcionalidades
 
 - Catálogo reutilizável de exercícios, fichas com código/nome, metas gerais e observações fixas. Ordenação dos exercícios por subir/descer e arquivamento sem apagar histórico.
-- Peso e repetições independentes por série, ou duração manual em segundos/`mm:ss`. Cronômetro por exercício baseado em timestamps, com recuperação após segundo plano/reabertura.
+- Peso e repetições independentes por série, ou duração manual digitada em segundos com leitura complementar em `mm:ss`. Cronômetro por exercício baseado em timestamps, com recuperação após segundo plano/reabertura.
 - Uma sessão ativa ou pausada por vez, inclusive entre abas. Salvamento automático, conclusão/desfazer, séries ignoradas e adição/remoção de séries.
-- Sugestões da última sessão concluída do mesmo exercício e tipo. Metas usadas quando não há uma série anterior concluída com o mesmo número.
+- Sugestões da última sessão concluída do mesmo exercício e tipo. Sem referência, a carga começa em 0 kg; repetições e duração usam a meta.
 - Histórico com snapshots de nomes, metas, tipos e observações, filtros por ficha/data e evolução textual por exercício.
 - Importação `.xlsx`, exportação CSV, backup/restauração JSON e lembrete de backup após sete dias.
 - PWA instalável, cache completo e atualização explícita quando não há treino pendente ou alterações não salvas.
 
 Não há login, backend ou sincronização. Dados pertencem à origem (protocolo/domínio/porta) e ao navegador. Mantenha o mesmo domínio de uso e leve um backup JSON ao trocar de dispositivo, navegador ou origem. Limpar o armazenamento do navegador remove os registros locais. Solicitar persistência nas configurações depende da aprovação do navegador e não substitui backups.
+
+## Registrar um treino no celular
+
+Todos os exercícios aparecem em cards na ordem da ficha, inicialmente recolhidos. Toque no card para abrir as séries; somente um fica aberto por vez. O resumo mostra a meta de repetições ou tempo e as quantidades concluídas, ignoradas e pendentes. Antes de recolher ou trocar, o aplicativo aguarda as gravações; campos inválidos ou falhas de armazenamento mantêm o card aberto.
+
+**Concluir todas** pede confirmação e conclui somente as séries pendentes do exercício com os valores gravados. Preserva séries ignoradas e já concluídas, inclusive seus horários. A ação fica bloqueada com treino pausado, cronômetro ativo no exercício, campo inválido ou gravação pendente. É possível desfazer cada série individualmente. Pausa, retomada e finalização do treino permanecem fora dos cards.
+
+Na ficha, informe repetições mínimas e máximas; para meta fixa, use o mesmo valor nos dois campos. Não há meta de kg. Nas séries, a carga aceita vírgula ou ponto decimal, sem separador de milhares. Séries, repetições e segundos exigem inteiros positivos; carga admite zero. É possível limpar um campo durante a edição, mas ele deve ser preenchido antes de salvar ou concluir. Letras, notação científica e colagens inválidas são recusadas sem extrair números nem corrigir o valor silenciosamente.
+
+A interface reserva espaço para a navegação e as áreas seguras do aparelho; a navegação inferior é ocultada quando o teclado reduz a área de edição. O comportamento do teclado nativo e de instalação deve ser conferido em aparelhos reais conforme [o roteiro de validação](docs/VALIDACAO.md).
 
 ## Importar uma planilha
 
@@ -40,10 +50,10 @@ Em **Importar Excel**, selecione um `.xlsx` de até 20 MB. Cada linha representa
 
 Exemplo de cabeçalho e valores:
 
-| Treino | Nome da ficha | Exercício | Tipo | Séries | Repetições | Carga | Duração | Observações |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| A | Peito e abdômen | Supino reto | peso | 3 | 8-12 | 57,5 | | Banco 3 |
-| A | Peito e abdômen | Prancha | tempo | 3 | | | 00:45 | Abdômen firme |
+| Treino | Nome da ficha   | Exercício   | Tipo  | Séries | Repetições | Duração | Observações   |
+| ------ | --------------- | ----------- | ----- | ------ | ---------- | ------- | ------------- |
+| A      | Peito e abdômen | Supino reto | peso  | 3      | 8-12       |         | Banco 3       |
+| A      | Peito e abdômen | Prancha     | tempo | 3      |            | 00:45   | Abdômen firme |
 
 - Sem coluna de treino, o nome da aba vira o código. Sem nome da ficha, usa-se o nome existente ou `Treino <código>`.
 - Séries e exercício são obrigatórios. Exercícios por peso exigem repetições positivas ou um intervalo crescente; as colunas de kg da planilha são ignoradas. As fichas não têm meta de carga: novas sessões usam os pesos anteriores ou começam em 0 kg. Tempo exige duração positiva. Escolha segundos ou minutos para valores numéricos; texto `mm:ss` independe dessa escolha.
@@ -53,7 +63,7 @@ Exemplo de cabeçalho e valores:
 - Para códigos existentes, escolha ignorar, atualizar a ficha ou criar outra com sufixo. A atualização substitui os exercícios da ficha e preserva sessões anteriores.
 - Colunas separadas por série não são suportadas nesta versão. Ajuste-as para metas gerais antes de importar.
 
-O CSV usa UTF-8 com BOM, `;`, vírgula decimal e proteção contra interpretação de textos como fórmulas. O histórico exporta uma linha por série, incluindo status, metas e observações. O CSV é para consulta; o formato de restauração é JSON.
+O CSV usa UTF-8 com BOM, `;`, vírgula decimal e proteção contra interpretação de textos como fórmulas. O histórico exporta uma linha por série, incluindo a carga realmente registrada, status, metas de repetições/tempo e observações. O CSV de fichas não contém carga e o histórico não contém meta de kg. O CSV é para consulta; o formato de restauração é JSON.
 
 ## Backup e restauração
 
@@ -73,12 +83,12 @@ O projeto usa `output: "export"`, sem Workers, Functions, Server Actions ou APIs
 
 Configure o projeto na raiz do repositório:
 
-| Campo | Valor |
-| --- | --- |
-| Diretório raiz | raiz do repositório |
-| Versão Node | 24 |
-| Comando de build | `npm run build` |
-| Diretório de saída | `apps/web/out` |
+| Campo              | Valor               |
+| ------------------ | ------------------- |
+| Diretório raiz     | raiz do repositório |
+| Versão Node        | 24                  |
+| Comando de build   | `npm run build`     |
+| Diretório de saída | `apps/web/out`      |
 
 O npm deve instalar os workspaces da raiz com o lockfile. A alternativa é gerar a pasta localmente e enviar **todo o conteúdo** de `apps/web/out` pelo Direct Upload. Não publique apenas `.next` nem apenas arquivos HTML.
 

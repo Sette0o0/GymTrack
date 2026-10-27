@@ -129,6 +129,11 @@ test("cronômetro e treino pausado bloqueiam concluir todas, com retomada offlin
   await start(page)
   await openExercise(page, "Prancha")
   await page.getByRole("button", { name: "Cronometrar", exact: true }).click()
+  // A disabled action can also mean a write is still in flight. Confirm persistence before forcing reload.
+  await expect(
+    page.getByRole("button", { name: "Parar", exact: true })
+  ).toBeVisible()
+  await saved(page)
   await expect(
     page.getByRole("button", { name: "Concluir todas", exact: true })
   ).toBeDisabled()

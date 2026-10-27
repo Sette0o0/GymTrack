@@ -78,19 +78,15 @@ Todas as operações de treino são locais
 
 O Next.js será configurado com `output: "export"`, gerando a pasta `out/` para publicação. Sem servidor, não utilizaremos Server Actions, autenticação ou APIs dinâmicas. A documentação atual do Next.js e da Cloudflare confirma essa arquitetura para aplicações estáticas.&#x20;
 
-[image](https://www.google.com/s2/favicons?domain=https://nextjs.org\&sz=32)
+[image](https://www.google.com/s2/favicons?domain=https://nextjs.org&sz=32)
 
 Next.js+1
-
-
 
 Para o Service Worker, a implementação escolhida deverá ser validada com o build estático e a versão do Next.js utilizada. O Next.js documenta Serwist como uma opção de suporte offline, com atenção especial à configuração do Webpack.&#x20;
 
-[image](https://www.google.com/s2/favicons?domain=https://nextjs.org\&sz=32)
+[image](https://www.google.com/s2/favicons?domain=https://nextjs.org&sz=32)
 
 Next.js+1
-
-
 
 ## 3. Regras funcionais do aplicativo
 
@@ -158,7 +154,7 @@ O sistema fará distinção entre a ficha de treino e o treino realizado.
 
 Isso evita um erro comum: alterar uma ficha e, sem querer, modificar os registros históricos.
 
-Por exemplo, se você fizer o Treino A com supino a 60 kg hoje e editar a ficha para 65 kg amanhã, o treino de hoje continuará registrando 60 kg.
+Por exemplo, se você fizer o Treino A com supino a 60 kg hoje e alterar as metas de repetições ou os exercícios da ficha amanhã, o treino de hoje continuará registrando os mesmos 60 kg, repetições, metas e observações. As fichas não têm meta de carga.
 
 Cada sessão deverá guardar a data, horários, treino de origem, exercícios realizados, séries, pesos ou durações, observações e status de conclusão.
 
@@ -200,17 +196,19 @@ Preferências, unidades e versão dos dados
 
 ### Campos essenciais
 
-| Tabela                | Campos principais                                                                                   |
-| --------------------- | --------------------------------------------------------------------------------------------------- |
-| `exerciseDefinitions` | id, name, defaultType, notes                                                                        |
-| `workoutTemplates`    | id, code, name, description, order, archived                                                        |
-| `templateExercises`   | id, templateId, exerciseId, order, type, targetSets, targetReps, targetSeconds, targetWeight, notes |
-| `workoutSessions`     | id, templateId, workoutName, startedAt, finishedAt, status, notes                                   |
-| `sessionExercises`    | id, sessionId, exerciseId, nameSnapshot, typeSnapshot, order, notesSnapshot, sessionNotes           |
-| `setRecords`          | id, sessionExerciseId, setNumber, weightKg, repetitions, durationSeconds, status, completedAt       |
-| `settings`            | key, value                                                                                          |
+| Tabela                | Campos principais                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `exerciseDefinitions` | id, name, defaultType, notes                                                                                             |
+| `workoutTemplates`    | id, code, name, description, order, archived                                                                             |
+| `templateExercises`   | id, templateId, exerciseId, order, type, targetSets, targetReps, targetSeconds, notes                                    |
+| `workoutSessions`     | id, templateId, workoutName, workoutCode, startedAt, localDate, finishedAt, status, notes                                |
+| `sessionExercises`    | id, sessionId, exerciseId, nameSnapshot, type, order, targetSets, targetReps, targetSeconds, notesSnapshot, sessionNotes |
+| `setRecords`          | id, sessionExerciseId, setNumber, type, weightKg, repetitions, durationSeconds, timerStartedAt, status, completedAt      |
+| `settings`            | key, value                                                                                                               |
 
 Todas as entidades principais utilizarão UUIDs. Os dados terão campos de criação e atualização quando necessário.
+
+O esquema local e os backups usam a versão 2. A migração do IndexedDB retira apenas `targetWeight` legado das fichas e dos snapshots; cargas reais, repetições, durações, IDs, observações, estados e recuperação de sessões são preservados. Backups v1 são convertidos antes da validação/restauração e versões futuras desconhecidas são recusadas sem alterar o banco.
 
 Em `workoutSessions`, eu também guardaria a data local do treino, além dos timestamps, para permitir filtros por dia sem problemas de fuso horário.
 
@@ -267,17 +265,17 @@ Esta será a tela central do aplicativo.
 
 Ela deverá permitir:
 
-- Ver o exercício atual, as metas e a observação fixa.
+- Ver todos os exercícios em cards expansíveis na ordem da ficha, inicialmente recolhidos, com metas e contagens de séries concluídas, ignoradas e pendentes.
 - Consultar os valores usados na última sessão daquele exercício.
 - Alterar peso e repetições de cada série independentemente.
-- Marcar séries como concluídas ou desfazer a conclusão.
+- Marcar séries como concluídas ou desfazer a conclusão; concluir todas as pendentes do exercício após confirmação, preservando ignoradas e horários já registrados.
 - Registrar duração em exercícios por tempo, manualmente ou com cronômetro.
 - Adicionar ou remover séries.
 - Registrar observações da sessão.
-- Navegar para o exercício anterior ou seguinte.
+- Abrir um card por vez na própria página, aguardando gravações antes de recolher ou trocar. Campos inválidos ou falhas mantêm o exercício aberto.
 - Finalizar, pausar ou retomar o treino.
 
-Comportamento fundamental: ao iniciar um treino, o aplicativo sugere as cargas e durações da última sessão concluída, sem obrigar o usuário a digitá-las novamente.
+Comportamento fundamental: ao iniciar um treino, o aplicativo sugere as cargas, repetições e durações da última sessão concluída. Sem histórico, a carga começa em zero e repetições/duração usam a meta. Séries adicionadas copiam os valores da última série existente.
 
 Por exemplo, se na última sessão do supino você realizou 60 kg × 10, 60 kg × 9 e 57,5 kg × 8, esses valores poderão aparecer como sugestões para as três séries.
 
@@ -285,7 +283,7 @@ Cada alteração deve ser salva no IndexedDB imediatamente ou através de uma es
 
 ### Tela 3 — Editar fichas
 
-Permitirá cadastrar treinos, escolher exercícios, definir o tipo de medição, configurar séries e metas e escrever observações.
+Permitirá cadastrar treinos, escolher exercícios, definir o tipo de medição, configurar séries e metas e escrever observações. Metas de repetições usam mínimo e máximo separados (iguais para uma meta fixa), mantendo `targetReps` como valor ou intervalo no banco. Durações são digitadas em segundos, com apresentação complementar em `mm:ss`. Não há meta de kg.
 
 Exemplo de configuração de exercício:
 
@@ -313,19 +311,15 @@ Uma lista cronológica com filtros por período e por treino A, B, C etc.
 
 Ao abrir uma sessão, o aplicativo mostrará exatamente o que foi realizado, incluindo séries ignoradas, observações, duração e alterações em relação às metas.
 
-### Tela 5 — Evolução por exercício
+### Melhoria futura — Evolução por exercício
 
-Exibirá todas as sessões de um exercício, permitindo visualizar se a carga, repetições ou duração estão aumentando.
+O MVP oferece consulta textual no histórico. Para uma versão futura, adicionar acesso rápido à evolução diretamente do exercício por modal, sheet ou drawer, priorizando celular e preferencialmente com gráfico das médias simples de carga e repetições por sessão, considerando somente séries concluídas.
 
 ## Evolução — Supino reto
 
-Exemplo ilustrativo: maior carga concluída por sessão
+Cada sessão terá um ponto para a média simples das cargas registradas e outro para a média simples das repetições, com unidades identificadas. Séries ignoradas e pendentes não entram no cálculo; sessões sem séries concluídas não produzem média.
 
-45 kg51,25 kg57,5 kg63,75 kg70 kg01/1008/1015/1022/10
-
-Valores fictícios para demonstrar a funcionalidade
-
-Para exercícios de tempo, o gráfico poderá mostrar a maior duração de uma série ou a duração total concluída na sessão.
+Gráficos de duração e outras métricas poderão ser avaliados depois dessa primeira visualização. O gráfico permanece fora da implementação atual.
 
 Outras métricas, como volume total de treino, recordes e frequência, ficarão em uma etapa de evolução do produto.
 
@@ -346,7 +340,7 @@ O processo de importação do Excel terá as seguintes etapas:
 
 1. Selecionar um arquivo armazenado no dispositivo.
 2. Ler suas abas e identificar as colunas disponíveis.
-3. Permitir mapear campos como treino, exercício, séries, repetições, carga, tempo e observações.
+3. Permitir mapear treino, exercício, tipo, séries, repetições, tempo e observações. Ignorar colunas de kg independentemente de estarem preenchidas ou conterem valores inválidos.
 4. Exibir uma prévia dos treinos encontrados.
 5. Validar valores, tipos de exercícios e linhas incompletas.
 6. Identificar possíveis duplicações e oferecer as opções de ignorar, atualizar ou criar uma nova ficha.
@@ -418,7 +412,7 @@ Entrega: importar sua planilha e restaurar todos os dados em outro navegador.
 
 Histórico e evolução
 
-Criar listagem de sessões, detalhes históricos, filtros, últimas cargas por exercício, comparação entre sessões e gráficos de evolução.
+Criar listagem de sessões, detalhes históricos, filtros, últimas cargas e consulta textual por exercício. O gráfico com acesso rápido por modal, sheet ou drawer permanece na melhoria futura descrita na seção de evolução.
 
 Entrega: consultar todos os treinos e acompanhar a progressão.
 
@@ -442,11 +436,9 @@ Não dependeremos de fontes, imagens ou scripts de CDNs externas para o funciona
 
 A instalação deve oferecer uma indicação de "Disponível offline" somente depois que o cache essencial estiver pronto. Ter um ícone na tela inicial, por si só, não garante que todos os arquivos estejam disponíveis offline.&#x20;
 
-[image](https://www.google.com/s2/favicons?domain=https://developer.mozilla.org\&sz=32)
+[image](https://www.google.com/s2/favicons?domain=https://developer.mozilla.org&sz=32)
 
 MDN+1
-
-
 
 ### Persistência do IndexedDB
 
@@ -454,11 +446,9 @@ O armazenamento do navegador é normalmente persistente entre sessões, mas pode
 
 O aplicativo deverá solicitar armazenamento persistente via `navigator.storage.persist()` quando disponível, verificar o resultado e oferecer exportação de backup periódica. Essa solicitação não garante aprovação em todos os navegadores.&#x20;
 
-[image](https://www.google.com/s2/favicons?domain=https://developer.mozilla.org\&sz=32)
+[image](https://www.google.com/s2/favicons?domain=https://developer.mozilla.org&sz=32)
 
 MDN+1
-
-
 
 Também será importante usar sempre o mesmo domínio, pois os dados do IndexedDB pertencem à origem do site.
 
@@ -566,7 +556,7 @@ Depois que o fluxo de registro estiver validado:
 
 Cronômetro de descanso entre séries
 
-Gráficos avançados e recordes pessoais
+Acesso rápido por modal, sheet ou drawer ao gráfico de médias simples de carga e repetições por sessão, somente de séries concluídas, priorizando celular. Gráficos avançados e recordes pessoais ficam para depois.
 
 Duplicação de fichas e superséries
 

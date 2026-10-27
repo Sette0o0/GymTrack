@@ -34,6 +34,7 @@ import { Button } from "@workspace/ui/components/button"
 import { snapshot } from "@/db/repository"
 import { db } from "@/db/database"
 import { errorMessage, type Backup } from "@/lib/schema"
+import { useMobileKeyboard } from "@/hooks/use-mobile-keyboard"
 
 type AppState = {
   data?: Backup
@@ -59,6 +60,7 @@ const navigation = [
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
+  useMobileKeyboard()
   const result = useLiveQuery(async () => {
     try {
       return { data: await snapshot(), error: "" }

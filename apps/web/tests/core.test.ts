@@ -25,6 +25,7 @@ import { saveWorkout } from "@/services/workouts"
 import {
   csv,
   historyCsv,
+  templatesCsv,
   restoreBackup,
   validateBackup,
 } from "@/services/backup"
@@ -653,6 +654,9 @@ describe("backup e CSV", () => {
     const value = historyCsv(await snapshot(database))
     expect(value.split("\r\n")).toHaveLength(4)
     expect(value).toContain("Bom treino")
+    expect(value).toContain('"Carga kg"')
+    expect(value).not.toContain('"Meta kg"')
+    expect(templatesCsv(await snapshot(database))).not.toContain('"Carga kg"')
   })
 })
 

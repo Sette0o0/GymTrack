@@ -153,7 +153,7 @@
     outline-offset: 3px;
   }
   [data-slot="button"] {
-    min-height: 42px;
+    min-height: 44px;
     padding-inline: 16px;
     font-weight: 600;
   }
@@ -168,6 +168,73 @@
   }
 }
 
+button[data-slot="button"],
+[data-slot="select-trigger"],
+[data-slot="select-item"],
+.button-link,
+.text-link {
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 100%;
+}
+button[data-slot="button"],
+.button-link {
+  height: auto;
+  padding-block: 10px;
+  white-space: normal;
+  line-height: 1.4;
+}
+[data-slot="input"],
+[data-slot="textarea"],
+[data-slot="select-trigger"] {
+  font-size: 16px;
+  scroll-margin-block: 100px;
+}
+[data-slot="select-trigger"] {
+  height: auto;
+  min-width: 0;
+  white-space: normal;
+}
+[data-slot="select-value"] {
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  flex: 1;
+  min-width: 0;
+}
+[data-slot="select-item"] {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.field small {
+  font-size: 13px;
+}
+.page-container a[href]:not(.recent-row):not(.import-shortcut) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.panel h2,
+.exercise-editor h3,
+.catalog-row h3,
+.workout-card h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.checkbox-target {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+}
+.checkbox-target input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+}
 .app-frame {
   min-height: 100svh;
 }
@@ -183,6 +250,7 @@
   z-index: 30;
 }
 .brand {
+  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -362,7 +430,7 @@
   justify-content: center;
   align-items: center;
   gap: 8px;
-  min-height: 43px;
+  min-height: 44px;
   padding: 10px 17px;
   border-radius: 7px;
   background: var(--primary);
@@ -647,7 +715,7 @@
 }
 .workout-card button {
   font-size: 10px;
-  min-height: 38px;
+  min-height: 44px;
 }
 .home-aside {
   padding-top: 3px;
@@ -813,7 +881,7 @@
   grid-column: 1/-1;
 }
 .field small {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
 }
 .form-actions {
@@ -857,7 +925,7 @@
 }
 .editor-controls button {
   padding: 8px;
-  min-width: 38px;
+  min-width: 44px;
 }
 .empty-state {
   background: var(--card);
@@ -1128,6 +1196,7 @@
   margin: 16px 0;
 }
 .sheet-toggle {
+  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1171,12 +1240,12 @@
   margin-left: auto;
 }
 .invalid-hint {
-  font-size: 11px;
-  color: #ba453c;
+  font-size: 13px;
+  color: var(--destructive);
 }
 .sheet-errors {
-  color: #ba453c;
-  font-size: 11px;
+  color: var(--destructive);
+  font-size: 13px;
 }
 .history-note {
   white-space: pre-wrap;
@@ -1247,7 +1316,11 @@
     grid-column: 2/-1;
   }
 }
-@media (max-width: 760px) {
+/* Layout and touch targets shared by phones and small tablets. */
+@media (max-width: 1023px) {
+  html {
+    scroll-padding-block: 100px;
+  }
   .sidebar {
     display: none;
   }
@@ -1255,76 +1328,97 @@
     margin-left: 0;
   }
   .topbar {
-    height: 70px;
-    padding: 0 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 6px 12px;
+    height: auto;
+    padding: calc(8px + env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right)) 12px
+      max(16px, env(safe-area-inset-left));
   }
   .desktop-caption {
     display: none;
   }
   .mobile-brand {
+    min-height: 44px;
     display: flex;
     align-items: center;
     gap: 5px;
     font-size: 22px;
-    letter-spacing: -0.8px;
     font-weight: 700;
+    letter-spacing: -0.8px;
   }
   .mobile-brand svg {
     color: var(--primary);
     margin-right: 4px;
   }
   .topbar-actions {
-    gap: 3px;
+    display: contents;
   }
-  .connection-pill {
-    font-size: 8px;
+  .topbar-actions > button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .pwa-status {
+    grid-column: 1/-1;
+    grid-row: 2;
+    justify-self: start;
+    min-width: 0;
+  }
+  .connection-pill,
+  .pwa-status button {
+    font-size: 12px;
   }
   .connection-pill.is-ready {
-    padding: 5px 7px;
+    padding: 6px 10px;
   }
   .page-container {
-    padding: 27px 20px 100px;
+    padding: 24px max(16px, env(safe-area-inset-right))
+      calc(110px + env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
   }
   .page-heading {
     align-items: start;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 12px;
     margin-bottom: 24px;
   }
   .page-heading h1 {
-    max-width: 340px;
     font-size: 27px;
     line-height: 1.25;
     letter-spacing: -0.8px;
+    overflow-wrap: anywhere;
   }
-  .page-heading > .button-link {
-    font-size: 11px;
-    min-height: 38px;
-  }
-  .page-description {
-    font-size: 11px;
+  .page-description,
+  .subtle,
+  .fixed-note,
+  .history-note,
+  .catalog-row p,
+  .empty-state p,
+  .error-banner p {
+    font-size: 14px;
   }
   .eyebrow {
-    font-size: 9px;
-    letter-spacing: 1.3px;
+    font-size: 11px;
+    letter-spacing: 1.1px;
   }
   .hero-panel {
     min-height: 300px;
   }
   .hero-copy {
-    padding: 27px 23px;
     width: 100%;
+    padding: 26px 22px;
   }
   .hero-copy h2 {
-    font-size: 27px;
+    font-size: 28px;
   }
   .hero-copy p {
-    max-width: 240px;
-    font-size: 10px;
+    max-width: 300px;
+    font-size: 14px;
   }
   .hero-tag {
-    font-size: 7px;
-    letter-spacing: 1.3px;
+    font-size: 11px;
+    letter-spacing: 1px;
   }
   .hero-art {
     opacity: 0.2;
@@ -1338,68 +1432,80 @@
   }
   .hero-copy .hero-button {
     margin-top: 20px;
+    font-size: 14px;
   }
   .stats-grid {
     gap: 8px;
-    margin-top: 15px;
+    margin-top: 16px;
     margin-bottom: 28px;
   }
   .stat-card {
-    padding: 15px 0;
+    padding: 16px 0;
     border-radius: 10px;
   }
   .stat-card [data-slot="card-content"] {
-    padding: 0 11px;
+    padding: 0 12px;
   }
-  .stat-top {
-    font-size: 9px;
+  .stat-top,
+  .stat-card small {
+    font-size: 12px;
     line-height: 1.6;
   }
   .stat-icon {
     display: none;
   }
   .stat-card strong {
-    font-size: 27px;
+    font-size: 28px;
     margin-top: 6px;
   }
   .stat-card small {
-    font-size: 8px;
     display: block;
-    line-height: 1.6;
   }
   .section-heading {
+    align-items: start;
+    flex-wrap: wrap;
     gap: 10px;
   }
   .section-heading h2 {
-    font-size: 18px;
+    font-size: 20px;
   }
   .section-heading p {
-    font-size: 9px;
+    font-size: 13px;
     line-height: 1.6;
-    max-width: 220px;
   }
   .text-link {
-    font-size: 9px;
-    gap: 3px;
+    font-size: 14px;
+    gap: 6px;
   }
   .workout-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 16px;
   }
   .workout-card [data-slot="card-content"] {
-    padding: 0 14px;
+    padding: 0 18px;
   }
   .workout-card h3 {
-    font-size: 13px;
+    font-size: 18px;
   }
   .workout-card [data-slot="badge"] {
-    font-size: 7px;
-    padding-inline: 5px;
+    font-size: 12px;
+    padding-inline: 8px;
+  }
+  .workout-card button {
+    font-size: 14px;
+  }
+  .exercise-preview,
+  .workout-last {
+    font-size: 14px;
   }
   .workout-letter {
-    width: 35px;
-    height: 37px;
-    font-size: 17px;
+    min-width: 40px;
+    width: fit-content;
+    max-width: 100%;
+    height: auto;
+    min-height: 40px;
+    font-size: 18px;
+    overflow-wrap: anywhere;
   }
   .home-aside {
     grid-template-columns: 1fr;
@@ -1408,25 +1514,30 @@
   .home-columns {
     gap: 24px;
   }
+  .tip-card p,
+  .import-shortcut small {
+    font-size: 14px;
+  }
   .import-shortcut {
-    margin-top: 13px;
+    margin-top: 16px;
   }
   .recent-section {
-    margin-top: 26px;
+    margin-top: 28px;
   }
   .recent-row {
     padding: 16px 12px;
     gap: 10px;
+    flex-wrap: wrap;
   }
   .recent-row strong {
-    font-size: 10px;
+    font-size: 14px;
   }
   .recent-duration {
-    font-size: 9px;
+    font-size: 12px;
   }
   .recent-empty {
-    font-size: 11px;
-    line-height: 1.8;
+    font-size: 14px;
+    line-height: 1.7;
   }
   .mobile-nav {
     position: fixed;
@@ -1434,8 +1545,10 @@
     left: 0;
     right: 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 8px max(8px, env(safe-area-inset-right))
+      calc(8px + env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
     border-top: 1px solid var(--border);
     background: var(--card);
     z-index: 35;
@@ -1444,18 +1557,26 @@
   .mobile-nav a {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     align-items: center;
-    gap: 5px;
-    min-height: 44px;
+    gap: 4px;
+    min-height: 52px;
     color: var(--muted-foreground);
-    font-size: 9px;
+    font-size: 12px;
   }
   .mobile-nav a[aria-current="page"] {
     color: var(--primary);
+    font-weight: 600;
+  }
+  html[data-keyboard-open] {
+    scroll-padding-block-end: 24px;
+  }
+  html[data-keyboard-open] .mobile-nav {
+    display: none;
   }
   .page-footer {
-    font-size: 8px;
-    line-height: 1.7;
+    font-size: 12px;
+    line-height: 1.6;
   }
   .page-footer > span:last-child {
     display: none;
@@ -1463,79 +1584,124 @@
   .panel {
     padding: 20px 16px;
   }
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+  .panel h2 {
+    font-size: 20px;
+  }
+  .form-grid,
+  .mapping-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
   }
   .exercise-editor {
-    padding: 15px 12px;
+    padding: 16px 12px;
   }
-  .mapping-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
+  .exercise-editor header {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .editor-controls {
+    grid-column: 1/-1;
+    justify-self: end;
+  }
+  .exercise-card-trigger {
+    gap: 12px;
+    padding: 18px 16px;
+  }
+  .exercise-card-content {
+    padding: 4px 16px 20px;
+  }
+  .exercise-card-counts {
+    font-size: 13px;
+    gap: 6px 12px;
   }
   .set-row {
-    gap: 8px;
-    grid-template-columns: 27px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-block: 20px;
   }
-  .set-buttons button {
-    font-size: 11px;
+  .set-row > .order-number {
+    grid-column: 1/-1;
+    margin: 0;
+  }
+  .set-row.is-time {
+    grid-template-columns: minmax(0, 1fr);
   }
   .set-buttons {
-    gap: 7px;
+    gap: 8px;
+    grid-column: 1/-1;
   }
-  .session-bottom {
-    flex-direction: column;
+  .set-buttons button {
+    font-size: 14px;
   }
-  .session-bottom button {
-    flex: 1;
+  .set-status {
+    flex-basis: 100%;
+    font-size: 13px;
+  }
+  .session-progress p,
+  .save-indicator {
+    font-size: 14px;
   }
   .sheet-panel {
-    padding: 15px 10px;
+    padding: 16px 12px;
+  }
+  .sheet-toggle {
+    min-height: 44px;
   }
   .catalog-row {
     flex-wrap: wrap;
   }
+  .catalog-row > div {
+    min-width: 0;
+    max-width: 100%;
+  }
   .catalog-actions {
     margin-left: 0;
+    width: 100%;
+    gap: 8px;
   }
   .filter-bar {
     align-items: stretch;
   }
+  .data-table {
+    font-size: 14px;
+  }
+  .data-table th {
+    font-size: 13px;
+  }
   .data-table th,
   .data-table td {
-    padding: 12px 9px;
+    padding: 12px 10px;
   }
-  .pwa-status button {
-    font-size: 9px;
+  [data-slot="dialog-content"] {
+    max-height: calc(
+      100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
+    overflow-y: auto;
+  }
+  [data-slot="dialog-title"] {
+    padding-right: 44px;
+    font-size: 18px;
+    overflow-wrap: anywhere;
+  }
+  [data-slot="dialog-description"] {
+    font-size: 14px;
   }
 }
+@media (max-width: 480px) {
+  .workout-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .form-actions > button {
+    flex: 1 1 auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation: none !important;
     transition: none !important;
-  }
-}
-
-@media (max-width: 760px) {
-  .workout-card button {
-    font-size: 12px;
-  }
-  .exercise-preview,
-  .workout-last {
-    font-size: 11px;
-  }
-  .stat-top,
-  .stat-card small {
-    font-size: 10px;
-  }
-  .section-heading p,
-  .page-description {
-    font-size: 12px;
-  }
-  .connection-pill {
-    font-size: 10px;
   }
 }

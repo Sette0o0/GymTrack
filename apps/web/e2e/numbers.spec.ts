@@ -93,7 +93,11 @@ test("campos numéricos recusam letras, validam intervalos e preservam decimais 
   await expect(reps).toHaveValue("0")
   await expect(reps).toHaveAttribute("aria-invalid", "true")
   await reps.fill("9")
-  await weight.fill("")
+  await reps.press("Alt+ArrowUp")
+  await expect(reps).toHaveValue("10")
+  await weight.focus()
+  await weight.press("ControlOrMeta+A")
+  await weight.press("Backspace")
   await expect(weight).toHaveValue("")
   await expect(weight).toHaveAttribute("aria-invalid", "true")
   await page

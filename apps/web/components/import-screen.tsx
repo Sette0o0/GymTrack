@@ -312,23 +312,25 @@ export function ImportScreen() {
                       style={{ opacity: row.excluded ? 0.5 : 1 }}
                     >
                       <td>
-                        <input
-                          type="checkbox"
-                          aria-label={`Incluir ${row.sheet} linha ${row.row}`}
-                          checked={!row.excluded}
-                          onChange={(event) => {
-                            const sheet = sheets.find(
-                              (item) => item.sheet === row.sheet
-                            )!
-                            update(row.sheet, {
-                              excluded: event.target.checked
-                                ? sheet.excluded.filter(
-                                    (line) => line !== row.row
-                                  )
-                                : [...sheet.excluded, row.row],
-                            })
-                          }}
-                        />
+                        <label className="checkbox-target">
+                          <input
+                            type="checkbox"
+                            aria-label={`Incluir ${row.sheet} linha ${row.row}`}
+                            checked={!row.excluded}
+                            onChange={(event) => {
+                              const sheet = sheets.find(
+                                (item) => item.sheet === row.sheet
+                              )!
+                              update(row.sheet, {
+                                excluded: event.target.checked
+                                  ? sheet.excluded.filter(
+                                      (line) => line !== row.row
+                                    )
+                                  : [...sheet.excluded, row.row],
+                              })
+                            }}
+                          />
+                        </label>
                       </td>
                       <td>
                         {row.sheet} / {row.row}

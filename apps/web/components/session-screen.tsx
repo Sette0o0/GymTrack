@@ -433,7 +433,7 @@ function SetRow({ set, disabled }: { set: SetRecord; disabled: boolean }) {
       : 0
   return (
     <div
-      className={`set-row ${set.status === "completed" ? "is-completed" : ""}`}
+      className={`set-row ${set.type === "time" ? "is-time" : ""} ${set.status === "completed" ? "is-completed" : ""}`}
     >
       <span className="order-number">{set.setNumber}</span>
       {set.type === "weight_reps" ? (
@@ -536,11 +536,12 @@ function SetRow({ set, disabled }: { set: SetRecord; disabled: boolean }) {
           ) : (
             <Check size={17} />
           )}
-          {set.status === "completed" ? "Feita" : "Concluir"}
+          {set.status === "completed" ? "Desfazer" : "Concluir"}
         </Button>
         <Button
           variant="ghost"
-          aria-label={`Ignorar série ${set.setNumber}`}
+          aria-label={`${set.status === "skipped" ? "Retomar" : "Ignorar"} série ${set.setNumber}`}
+          title={`${set.status === "skipped" ? "Retomar" : "Ignorar"} série ${set.setNumber}`}
           disabled={disabled || busy || running}
           onClick={async () => {
             if (await settle())
