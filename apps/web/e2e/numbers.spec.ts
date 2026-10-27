@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test"
+import { openExercise } from "./helpers"
 
 test("campos numéricos recusam letras, validam intervalos e preservam decimais e campos vazios", async ({
   page,
@@ -40,9 +41,7 @@ test("campos numéricos recusam letras, validam intervalos e preservam decimais 
   await max.fill("15")
   await page.getByRole("button", { name: "Salvar ficha", exact: true }).click()
   await page.getByRole("button", { name: "Iniciar", exact: true }).click()
-  // Open the exercise when execution uses collapsible cards.
-  const card = page.getByRole("button", { name: /Agachamento com halteres/ })
-  if (await card.count()) await card.click()
+  await openExercise(page, "Agachamento com halteres")
   const weight = page.getByLabel("Carga da série 1 (kg)", { exact: true })
   const reps = page.getByLabel("Repetições da série 1", { exact: true })
   await expect(weight).toHaveAttribute("role", "spinbutton")

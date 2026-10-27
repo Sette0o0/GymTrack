@@ -1,77 +1,17 @@
-import { test, expect, type Page } from "@playwright/test"
+import { test, expect } from "@playwright/test"
 import { readFile, writeFile, unlink } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
 import writeExcelFile from "write-excel-file/node"
 
-async function choose(page: Page, label: string, option: string) {
-  await page.getByLabel(label, { exact: true }).click()
-  await page.getByRole("option", { name: option, exact: true }).click()
-}
-async function ready(page: Page) {
-  await page.goto("/")
-  await expect(
-    page.getByText("Disponível offline", { exact: true })
-  ).toBeVisible({ timeout: 30000 })
-}
-async function saved(page: Page) {
-  await expect(
-    page.getByText("Dados salvos neste dispositivo", { exact: true })
-  ).toBeVisible()
-}
-async function createExercise(page: Page, name: string, time = false) {
-  await page.goto("/exercicios/")
-  await page
-    .getByRole("button", { name: "Novo exercício", exact: true })
-    .click()
-  await page.getByLabel("Nome do exercício", { exact: true }).fill(name)
-  if (time) await choose(page, "Tipo padrão", "Tempo")
-  await page
-    .getByRole("button", { name: "Salvar exercício", exact: true })
-    .click()
-  await expect(
-    page.getByRole("heading", { name: "Novo exercício", exact: true })
-  ).not.toBeVisible()
-}
-async function createWorkout(page: Page) {
-  await createExercise(page, "Supino reto")
-  await createExercise(page, "Prancha", true)
-  await page.goto("/treinos/?novo=1")
-  await page.getByLabel("Código do treino", { exact: true }).fill("A")
-  await page
-    .getByLabel("Nome da ficha", { exact: true })
-    .fill("Peito e abdômen")
-  await choose(page, "Escolher do catálogo", "Supino reto")
-  await page.getByRole("button", { name: "Adicionar", exact: true }).click()
-  await page.getByLabel("Quantidade de séries", { exact: true }).fill("2")
-  await choose(page, "Escolher do catálogo", "Prancha")
-  await page.getByRole("button", { name: "Adicionar", exact: true }).click()
-  await page
-    .getByLabel("Quantidade de séries", { exact: true })
-    .nth(1)
-    .fill("1")
-  await page
-    .getByLabel("Observação fixa nesta ficha", { exact: true })
-    .nth(0)
-    .fill("Banco na posição 3")
-  await page.getByRole("button", { name: "Salvar ficha", exact: true }).click()
-  await expect(
-    page.getByRole("heading", { name: "Minhas fichas", exact: true })
-  ).toBeVisible()
-}
-async function start(page: Page) {
-  await page.getByRole("button", { name: "Iniciar", exact: true }).click()
-  await expect(page).toHaveURL(/executar\/\?id=/)
-  await expect(
-    page.getByLabel("Carga da série 1 (kg)", { exact: true })
-  ).toBeVisible()
-}
-async function finish(page: Page) {
-  await page
-    .getByRole("button", { name: "Finalizar treino", exact: true })
-    .click()
-  await page.getByRole("button", { name: "Confirmar", exact: true }).click()
-  await expect(page).toHaveURL(/historico\/\?id=/)
-}
+import {
+  ready,
+  saved,
+  createWorkout,
+  start,
+  finish,
+  openExercise,
+  exerciseCard,
+} from "./helpers"
 
 test("ficha, séries, recuperação, histórico e backup funcionam totalmente offline", async ({
   page,
@@ -111,6 +51,7 @@ test("ficha, séries, recuperação, histórico e backup funcionam totalmente of
     .fill("Bom treino")
   await saved(page)
   await page.reload()
+  await openExercise(page, "Supino reto")
   await expect(
     page.getByLabel("Carga da série 1 (kg)", { exact: true })
   ).toHaveValue("57,5")
@@ -145,15 +86,11 @@ test("ficha, séries, recuperação, histórico e backup funcionam totalmente of
   await page
     .getByRole("button", { name: "Retomar treino", exact: true })
     .click()
-  await page
-    .getByRole("button", { name: "Próximo exercício", exact: true })
-    .click()
+  await openExercise(page, "Prancha")
   await page.getByRole("button", { name: "Cronometrar", exact: true }).click()
   await expect(page.getByRole("timer")).toBeVisible()
   await page.reload()
-  await page
-    .getByRole("button", { name: "Próximo exercício", exact: true })
-    .click()
+  await openExercise(page, "Prancha")
   await expect(
     page.getByRole("button", { name: "Parar", exact: true })
   ).toBeVisible()
@@ -337,6 +274,7 @@ test("Excel com múltiplas abas, exclusão de erro e exportação CSV offline", 
     .filter({ has: page.getByRole("heading", { name: "Sábado", exact: true }) })
     .getByRole("button", { name: "Iniciar", exact: true })
     .click()
+  await openExercise(page, "Prancha")
   await expect(
     page.getByLabel("Duração da série 1 (segundos)", { exact: true })
   ).toHaveValue("45")
@@ -355,6 +293,18 @@ test("valores inválidos e falha de armazenamento não são anunciados como salv
   await createWorkout(page)
   await start(page)
   await page.getByLabel("Carga da série 1 (kg)", { exact: true }).fill("")
+  await exerciseCard(page, "Prancha").click()
+  await expect(exerciseCard(page, "Supino reto")).toHaveAttribute(
+    "aria-expanded",
+    "true"
+  )
+  await expect(exerciseCard(page, "Prancha")).toHaveAttribute(
+    "aria-expanded",
+    "false"
+  )
+  await expect(
+    page.getByRole("button", { name: "Concluir todas", exact: true })
+  ).toBeDisabled()
   await expect(
     page.getByText("Existem alterações não salvas", { exact: true })
   ).toBeVisible()
@@ -389,6 +339,11 @@ test("valores inválidos e falha de armazenamento não são anunciados como salv
   await expect(
     page.getByRole("button", { name: "Tentar salvar novamente", exact: true })
   ).toBeVisible()
+  await exerciseCard(page, "Prancha").click()
+  await expect(exerciseCard(page, "Supino reto")).toHaveAttribute(
+    "aria-expanded",
+    "true"
+  )
   await expect(
     page.getByText("Existem alterações não salvas", { exact: true })
   ).toBeVisible()
@@ -416,6 +371,7 @@ test("valores inválidos e falha de armazenamento não são anunciados como salv
     .click()
   await saved(page)
   await page.reload()
+  await openExercise(page, "Supino reto")
   await expect(
     page.getByLabel("Carga da série 1 (kg)", { exact: true })
   ).toHaveValue("67")

@@ -164,6 +164,39 @@ export async function updateSet(
     }
   )
 }
+export async function completePendingSets(
+  sessionExerciseId: string,
+  database: GymDatabase = db
+): Promise<number> {
+  return database.transaction(
+    "rw",
+    [database.setRecords, database.sessionExercises, database.workoutSessions],
+    async () => {
+      const { session } = await editableSession(sessionExerciseId, database)
+      if (session.status !== "active")
+        throw new Error("Retome o treino antes de concluir as séries.")
+      const sets = await database.setRecords
+        .where("sessionExerciseId")
+        .equals(sessionExerciseId)
+        .toArray()
+      if (
+        sets.some((set) => set.type === "time" && set.timerStartedAt !== null)
+      )
+        throw new Error(
+          "Pare o cronômetro deste exercício antes de concluir todas as séries."
+        )
+      const completedAt = Date.now()
+      const pending = sets
+        .filter((set) => set.status === "pending")
+        .map((set) =>
+          setSchema.parse({ ...set, status: "completed", completedAt })
+        )
+      // Validate every pending set before writing; the transaction also rolls back storage failures.
+      if (pending.length) await database.setRecords.bulkPut(pending)
+      return pending.length
+    }
+  )
+}
 export async function toggleTimer(id: string, database: GymDatabase = db) {
   await database.transaction(
     "rw",

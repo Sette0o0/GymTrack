@@ -972,15 +972,57 @@
   font-size: 12px;
   color: var(--muted-foreground);
 }
-.exercise-tabs {
-  display: flex;
-  overflow-x: auto;
-  gap: 8px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
+.exercise-cards {
+  gap: 16px;
+  margin-bottom: 24px;
 }
-.exercise-tabs button {
-  white-space: nowrap;
+.exercise-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  overflow: clip;
+}
+.exercise-card-trigger {
+  width: 100%;
+  gap: 14px;
+  padding: 20px;
+  white-space: normal;
+}
+.exercise-card-trigger:hover {
+  text-decoration: none;
+  background: var(--accent);
+}
+.exercise-card-trigger > .order-number {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.exercise-card-summary {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+}
+.exercise-card-name {
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.exercise-card-target {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.exercise-card-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.exercise-card-content {
+  padding: 4px 20px 24px;
 }
 .exercise-title {
   display: flex;

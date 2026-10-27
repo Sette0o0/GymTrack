@@ -13,6 +13,7 @@ import {
 import {
   addSet,
   changeSession,
+  completePendingSets,
   deleteSession,
   removeSet,
   sessionNote,
@@ -156,6 +157,139 @@ async function completeFixture() {
   await changeSession(sessionId, "completed", database)
   return { ...fixtureData, sessionId, sessionExercises: exercises, sets }
 }
+
+describe("conclusão das séries pendentes por exercício", () => {
+  async function pendingFixture() {
+    const { templateId } = await fixture()
+    const sessionId = await startSession(templateId, database)
+    const exercise = (
+      await database.sessionExercises
+        .where("sessionId")
+        .equals(sessionId)
+        .toArray()
+    ).find((row) => row.type === "weight_reps")!
+    return {
+      sessionId,
+      exercise,
+      sets: await database.setRecords
+        .where("sessionExerciseId")
+        .equals(exercise.id)
+        .sortBy("setNumber"),
+    }
+  }
+  it("conclui apenas pendentes com os valores atuais e preserva registros e horários anteriores", async () => {
+    const { sessionId, exercise, sets } = await pendingFixture()
+    await addSet(exercise.id, database)
+    await addSet(exercise.id, database)
+    await updateSet(
+      sets[0]!.id,
+      { weightKg: 57.5, repetitions: 9, status: "completed" },
+      database
+    )
+    await updateSet(sets[1]!.id, { status: "skipped" }, database)
+    const before = await database.setRecords.toArray()
+    expect(await completePendingSets(exercise.id, database)).toBe(2)
+    const after = await database.setRecords.toArray()
+    for (const set of before) {
+      const actual = after.find((row) => row.id === set.id)!
+      if (set.sessionExerciseId !== exercise.id || set.status !== "pending")
+        expect(actual).toEqual(set)
+      else {
+        expect(actual).toEqual({
+          ...set,
+          status: "completed",
+          completedAt: expect.any(Number),
+        })
+      }
+    }
+    expect((await database.workoutSessions.get(sessionId))?.status).toBe(
+      "active"
+    )
+    expect(await completePendingSets(exercise.id, database)).toBe(0)
+    expect(await database.setRecords.toArray()).toEqual(after)
+    await updateSet(sets[0]!.id, { status: "pending" }, database)
+    expect((await database.setRecords.get(sets[0]!.id))?.completedAt).toBeNull()
+  })
+  it("serializa chamadas concorrentes em conexões diferentes, como duas abas", async () => {
+    const { exercise } = await pendingFixture()
+    const other = new GymDatabase(database.name)
+    await other.open()
+    try {
+      const counts = await Promise.all([
+        completePendingSets(exercise.id, database),
+        completePendingSets(exercise.id, other),
+        completePendingSets(exercise.id, database),
+      ])
+      expect(counts.sort()).toEqual([0, 0, 2])
+      expect(
+        (
+          await database.setRecords
+            .where("sessionExerciseId")
+            .equals(exercise.id)
+            .toArray()
+        ).every((row) => row.status === "completed")
+      ).toBe(true)
+    } finally {
+      other.close()
+    }
+  })
+  it("reverte a transação inteira se uma gravação falhar", async () => {
+    const { exercise } = await pendingFixture()
+    const before = await database.setRecords.toArray()
+    let writes = 0
+    const fail = () => {
+      if (++writes === 2) throw new Error("Falha na segunda série")
+    }
+    database.setRecords.hook("updating", fail)
+    await expect(completePendingSets(exercise.id, database)).rejects.toThrow(
+      "Falha na segunda série"
+    )
+    database.setRecords.hook("updating").unsubscribe(fail)
+    expect(await database.setRecords.toArray()).toEqual(before)
+  })
+  it("valida todas as séries antes de gravar qualquer conclusão", async () => {
+    const { exercise, sets } = await pendingFixture()
+    const invalidSet = sets[1]!
+    if (invalidSet.type !== "weight_reps") throw new Error("Fixture inválida")
+    await database.setRecords.put({ ...invalidSet, repetitions: 0 })
+    const before = await database.setRecords.toArray()
+    await expect(completePendingSets(exercise.id, database)).rejects.toThrow()
+    expect(await database.setRecords.toArray()).toEqual(before)
+  })
+  it("recusa treino pausado ou encerrado", async () => {
+    const { sessionId, exercise } = await pendingFixture()
+    await changeSession(sessionId, "paused", database)
+    const before = await database.setRecords.toArray()
+    await expect(completePendingSets(exercise.id, database)).rejects.toThrow(
+      "Retome"
+    )
+    expect(await database.setRecords.toArray()).toEqual(before)
+    await changeSession(sessionId, "completed", database)
+    await expect(completePendingSets(exercise.id, database)).rejects.toThrow(
+      "encerrado"
+    )
+  })
+  it("bloqueia cronômetro somente no próprio exercício e permite concluir duração manual", async () => {
+    const { exercise } = await pendingFixture()
+    const timed = (await database.setRecords.toArray()).find(
+      (row) => row.type === "time"
+    )!
+    await toggleTimer(timed.id, database)
+    await expect(
+      completePendingSets(timed.sessionExerciseId, database)
+    ).rejects.toThrow("cronômetro")
+    expect(await completePendingSets(exercise.id, database)).toBe(2)
+    await toggleTimer(timed.id, database)
+    await updateSet(timed.id, { durationSeconds: 75 }, database)
+    expect(await completePendingSets(timed.sessionExerciseId, database)).toBe(1)
+    expect(await database.setRecords.get(timed.id)).toEqual({
+      ...timed,
+      durationSeconds: 75,
+      status: "completed",
+      completedAt: expect.any(Number),
+    })
+  })
+})
 
 describe("sessões e preservação do histórico", () => {
   it("cria snapshots e preserva histórico ao editar e arquivar a ficha", async () => {
