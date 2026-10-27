@@ -140,7 +140,7 @@ export function ImportScreen() {
               treino, o nome da aba será o código. Sem tipo, uma duração ou
               valores como “30–45 s” em repetições indicam exercício por tempo.
               Intervalos de duração usam o limite superior e ficam preservados
-              nas observações. Carga vazia começa em 0 kg.
+              nas observações. Colunas de carga são ignoradas.
             </p>
             {sheets.map((sheet) => (
               <section className="sheet-panel" key={sheet.sheet}>

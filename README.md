@@ -46,7 +46,7 @@ Exemplo de cabeçalho e valores:
 | A | Peito e abdômen | Prancha | tempo | 3 | | | 00:45 | Abdômen firme |
 
 - Sem coluna de treino, o nome da aba vira o código. Sem nome da ficha, usa-se o nome existente ou `Treino <código>`.
-- Séries e exercício são obrigatórios. Peso exige repetições positivas ou um intervalo crescente; carga vazia vira 0 kg. Tempo exige duração positiva. Escolha segundos ou minutos para valores numéricos; texto `mm:ss` independe dessa escolha.
+- Séries e exercício são obrigatórios. Exercícios por peso exigem repetições positivas ou um intervalo crescente; as colunas de kg da planilha são ignoradas. As fichas não têm meta de carga: novas sessões usam os pesos anteriores ou começam em 0 kg. Tempo exige duração positiva. Escolha segundos ou minutos para valores numéricos; texto `mm:ss` independe dessa escolha.
 - Sem tipo explícito, duração preenchida indica tempo. A coluna de repetições também reconhece valores por tempo como `45 s`, `30–45 s`, `1–1,5 min` ou `00:45`. Intervalos usam o limite superior como meta única e preservam o texto original nas observações; a conversão aparece na prévia. Um tipo explícito e a coluna de duração mapeada têm prioridade. Intervalos sem unidade, como `8–12`, continuam sendo repetições.
 - Sufixos `s`, `seg`, `segundos`, `min` e `minutos` definem a unidade independentemente do seletor da aba; texto `mm:ss` também independe dessa escolha. Datas do Excel não são durações: use valores numéricos ou texto.
 - Corrija o mapeamento ou desmarque explicitamente as linhas inválidas. A confirmação é bloqueada enquanto houver erros incluídos.
@@ -59,7 +59,7 @@ O CSV usa UTF-8 com BOM, `;`, vírgula decimal e proteção contra interpretaç�
 
 Em **Configurações**, baixe o backup completo `.json` e confira o arquivo nos downloads. Guarde uma cópia fora do navegador.
 
-O formato `gymtrack-backup`, esquema 1, contém data de exportação e as sete tabelas com seus IDs. A restauração valida o formato, a versão, duplicações e relacionamentos antes de uma transação atômica. Arquivos de versão futura são recusados sem alterações.
+O formato `gymtrack-backup`, esquema 2, contém data de exportação e as sete tabelas com seus IDs. Backups v1 são convertidos, removendo apenas as antigas metas de kg; pesos realmente registrados nas séries são preservados. O banco local também migra para a versão 2 sem alterar sessões pendentes. A restauração valida o formato, a versão, duplicações e relacionamentos antes de uma transação atômica. Arquivos de versão futura são recusados sem alterações.
 
 - **Mesclar:** mantém registros locais com IDs existentes e acrescenta IDs novos. Conflitos de código de ficha, de séries ou mais de uma sessão pendente bloqueiam a operação completa.
 - **Substituir:** exige baixar um backup nesta sessão ou digitar `SUBSTITUIR`, além da confirmação final.

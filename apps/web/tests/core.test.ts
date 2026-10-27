@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { GymDatabase } from "@/db/database"
+import Dexie from "dexie"
 import { snapshot } from "@/db/repository"
 import {
   newId,
@@ -90,7 +91,6 @@ async function fixture() {
       type: "weight_reps",
       targetSets: 2,
       targetReps: "8-12",
-      targetWeight: 60,
       notes: "Controle a descida",
     },
     {
@@ -283,6 +283,81 @@ describe("sessões e preservação do histórico", () => {
 })
 
 describe("backup e CSV", () => {
+  it("converte backups v1 sem manter metas de kg nem alterar cargas realizadas", async () => {
+    await completeFixture()
+    const exported = await snapshot(database)
+    const legacy = {
+      ...exported,
+      schemaVersion: 1,
+      templateExercises: exported.templateExercises.map((row) => ({
+        ...row,
+        targetWeight: 80,
+      })),
+      sessionExercises: exported.sessionExercises.map((row) => ({
+        ...row,
+        targetWeight: 80,
+      })),
+    }
+    const converted = validateBackup(legacy)
+    expect(converted.schemaVersion).toBe(2)
+    expect(
+      converted.templateExercises.every((row) => !("targetWeight" in row))
+    ).toBe(true)
+    expect(
+      converted.sessionExercises.every((row) => !("targetWeight" in row))
+    ).toBe(true)
+    expect(converted.setRecords).toEqual(exported.setRecords)
+    const target = createDatabase()
+    await restoreBackup(legacy, "replace", target)
+    expect((await snapshot(target)).setRecords).toEqual(exported.setRecords)
+  })
+
+  it("migra IndexedDB v1 preservando inclusive a sessão pendente e seus pesos", async () => {
+    const { templateId } = await fixture()
+    await startSession(templateId, database)
+    const first = (await database.setRecords.toArray()).find(
+      (row) => row.type === "weight_reps"
+    )!
+    await updateSet(first.id, { weightKg: 57.5, repetitions: 9 }, database)
+    const before = await snapshot(database)
+    const name = `legacy-${newId()}`
+    const legacy = new Dexie(name)
+    legacy
+      .version(1)
+      .stores(
+        Object.fromEntries(
+          database.tables.map((table) => [
+            table.name,
+            [
+              table.schema.primKey.src,
+              ...table.schema.indexes.map((index) => index.src),
+            ].join(", "),
+          ])
+        )
+      )
+    await legacy.open()
+    for (const table of database.tables) {
+      const rows = await table.toArray()
+      await legacy
+        .table(table.name)
+        .bulkAdd(
+          ["templateExercises", "sessionExercises"].includes(table.name)
+            ? rows.map((row) => ({ ...row, targetWeight: 80 }))
+            : rows
+        )
+    }
+    legacy.close()
+    const upgraded = new GymDatabase(name)
+    databases.push(upgraded)
+    await upgraded.open()
+    const after = await snapshot(upgraded)
+    expect(upgraded.verno).toBe(2)
+    expect(after.workoutSessions).toEqual(before.workoutSessions)
+    expect(after.setRecords).toEqual(before.setRecords)
+    expect(after.templateExercises).toEqual(before.templateExercises)
+    expect(after.sessionExercises).toEqual(before.sessionExercises)
+  })
+
   it("reverte toda a restauração se o armazenamento falhar durante a gravação", async () => {
     await completeFixture()
     const exported = await snapshot(database)
@@ -308,7 +383,7 @@ describe("backup e CSV", () => {
     database.close()
     const upgraded = new GymDatabase(name)
     upgraded
-      .version(2)
+      .version(3)
       .stores({ settings: "key" })
       .upgrade(async (transaction) => {
         await transaction
@@ -424,6 +499,30 @@ function sheet(data: unknown[][]): SheetInput {
   }
 }
 describe("importação Excel", () => {
+  it("ignora cargas da planilha, inclusive texto ou valores inválidos", async () => {
+    const input = sheet([
+      ["Exercício", "Séries", "Repetições", "Carga"],
+      ["Supino", 2, "12-15", "abc"],
+      ["Remada", 3, "8-12", -100],
+    ])
+    const rows = previewImport([input])
+    expect(
+      rows.every(
+        (row) =>
+          !row.errors.length &&
+          row.targets?.type === "weight_reps" &&
+          !("targetWeight" in row.targets)
+      )
+    ).toBe(true)
+    await importRows(rows, {}, database)
+    const template = (await database.workoutTemplates.toArray())[0]!
+    await startSession(template.id, database)
+    expect(
+      (await database.setRecords.toArray()).every(
+        (row) => row.type === "weight_reps" && row.weightKg === 0
+      )
+    ).toBe(true)
+  })
   it("importa a prancha da linha 33 com intervalo em segundos na coluna de repetições", async () => {
     const input = sheet([
       [
@@ -543,7 +642,7 @@ describe("importação Excel", () => {
     expect(rows[0]).toMatchObject({
       code: "B",
       errors: [],
-      targets: { type: "weight_reps", targetWeight: 57.5, targetReps: "8-12" },
+      targets: { type: "weight_reps", targetReps: "8-12" },
     })
     expect(rows[1]).toMatchObject({
       errors: [],

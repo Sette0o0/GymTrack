@@ -30,6 +30,26 @@ export class GymDatabase extends Dexie {
       setRecords: "id, sessionExerciseId, &[sessionExerciseId+setNumber]",
       settings: "key",
     })
+    this.version(2)
+      .stores({})
+      .upgrade(async (transaction) => {
+        await transaction
+          .table<TemplateExercise & { targetWeight?: number }>(
+            "templateExercises"
+          )
+          .toCollection()
+          .modify((exercise) => {
+            delete exercise.targetWeight
+          })
+        await transaction
+          .table<SessionExercise & { targetWeight?: number }>(
+            "sessionExercises"
+          )
+          .toCollection()
+          .modify((exercise) => {
+            delete exercise.targetWeight
+          })
+      })
   }
 }
 export const db = new GymDatabase()

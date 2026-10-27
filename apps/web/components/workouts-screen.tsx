@@ -205,7 +205,6 @@ type Draft = {
   type: "weight_reps" | "time"
   sets: string
   reps: string
-  weight: string
   seconds: string
   notes: string
 }
@@ -216,10 +215,6 @@ function toDraft(exercise: TemplateExercise): Draft {
     type: exercise.type,
     sets: String(exercise.targetSets),
     reps: exercise.type === "weight_reps" ? exercise.targetReps : "8-12",
-    weight:
-      exercise.type === "weight_reps"
-        ? String(exercise.targetWeight).replace(".", ",")
-        : "0",
     seconds: exercise.type === "time" ? String(exercise.targetSeconds) : "45",
     notes: exercise.notes,
   }
@@ -262,7 +257,6 @@ function WorkoutEditor({
         type: definition.defaultType,
         sets: "3",
         reps: "8-12",
-        weight: "0",
         seconds: "45",
         notes: "",
       },
@@ -304,7 +298,6 @@ function WorkoutEditor({
               : {
                   type: row.type,
                   targetSets: numberValue(row.sets),
-                  targetWeight: numberValue(row.weight),
                   targetReps: row.reps,
                 }
           ),
@@ -454,19 +447,6 @@ function WorkoutEditor({
                           value={row.reps}
                           onChange={(event) =>
                             update(row.id, { reps: event.target.value })
-                          }
-                        />
-                      )}
-                    </Field>
-                    <Field label="Carga inicial (kg)">
-                      {(id) => (
-                        <Input
-                          id={id}
-                          required
-                          inputMode="decimal"
-                          value={row.weight}
-                          onChange={(event) =>
-                            update(row.id, { weight: event.target.value })
                           }
                         />
                       )}
@@ -797,5 +777,5 @@ export function ExercisesScreen() {
 export function targetLabel(target: Targets) {
   return target.type === "time"
     ? `${target.targetSets} séries · ${target.targetSeconds}s`
-    : `${target.targetSets} séries · ${target.targetReps} reps · ${target.targetWeight.toLocaleString("pt-BR")} kg`
+    : `${target.targetSets} séries · ${target.targetReps} reps`
 }

@@ -43,7 +43,6 @@ async function createWorkout(page: Page) {
   await choose(page, "Escolher do catálogo", "Supino reto")
   await page.getByRole("button", { name: "Adicionar", exact: true }).click()
   await page.getByLabel("Quantidade de séries", { exact: true }).fill("2")
-  await page.getByLabel("Carga inicial (kg)", { exact: true }).fill("60")
   await choose(page, "Escolher do catálogo", "Prancha")
   await page.getByRole("button", { name: "Adicionar", exact: true }).click()
   await page
@@ -312,7 +311,8 @@ test("Excel com múltiplas abas, exclusão de erro e exportação CSV offline", 
   for await (const chunk of stream!) chunks.push(Buffer.from(chunk))
   const csv = Buffer.concat(chunks).toString("utf8")
   expect(csv.startsWith("\ufeff")).toBe(true)
-  expect(csv).toContain('"37,5"')
+  expect(csv).not.toContain('"37,5"')
+  expect(csv).not.toContain('"Carga kg"')
   expect(csv).toContain('"90"')
   expect(csv).toContain("Meta de duração importada: 30–45 s.")
   await page.goto("/treinos/")

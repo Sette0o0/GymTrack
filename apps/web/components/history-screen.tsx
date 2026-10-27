@@ -365,7 +365,7 @@ function SetsTable({
                     ? `${set.durationSeconds - exercise.targetSeconds >= 0 ? "+" : ""}${set.durationSeconds - exercise.targetSeconds}s`
                     : set.type === "weight_reps" &&
                         exercise.type === "weight_reps"
-                      ? `${set.weightKg - exercise.targetWeight >= 0 ? "+" : ""}${weight(set.weightKg - exercise.targetWeight)} kg · meta ${exercise.targetReps} reps`
+                      ? `Meta ${exercise.targetReps} reps`
                       : "—"}
               </td>
             </tr>

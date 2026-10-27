@@ -16,7 +16,6 @@ export const importFields = {
   type: "Tipo",
   sets: "Séries",
   reps: "Repetições",
-  weight: "Carga (kg)",
   seconds: "Duração",
   notes: "Observações",
 }
@@ -100,7 +99,6 @@ export function guessMapping(headers: unknown[]): Mapping {
     type: ["tipo", "medicao"],
     sets: ["series", "sets"],
     reps: ["repeticoes", "reps"],
-    weight: ["carga", "peso", "carga kg", "carga (kg)"],
     seconds: ["tempo", "duracao", "segundos"],
     notes: ["observacoes", "observacao", "notas"],
   }
@@ -191,7 +189,6 @@ export function previewImport(sheets: SheetInput[]): ImportRow[] {
               type: "weight_reps",
               targetSets: sets,
               targetReps: read("reps"),
-              targetWeight: read("weight") ? numberValue(read("weight")) : 0,
             }
         entry.targets = targetsSchema.parse(target)
       } catch (error) {

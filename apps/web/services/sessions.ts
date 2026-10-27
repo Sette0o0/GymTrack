@@ -107,9 +107,7 @@ export async function startSession(
                 ...base,
                 type: "weight_reps",
                 weightKg:
-                  suggestion?.type === "weight_reps"
-                    ? suggestion.weightKg
-                    : exercise.targetWeight,
+                  suggestion?.type === "weight_reps" ? suggestion.weightKg : 0,
                 repetitions:
                   suggestion?.type === "weight_reps"
                     ? suggestion.repetitions
@@ -236,7 +234,7 @@ export async function addSet(exerciseId: string, database: GymDatabase = db) {
             : {
                 ...common,
                 type: "weight_reps",
-                weightKg: exercise.targetWeight,
+                weightKg: 0,
                 repetitions: Number(exercise.targetReps.split(/[-–]/)[0]),
               }
       )

@@ -16,12 +16,21 @@ export function validateBackup(input: unknown): Backup {
     typeof input === "object" &&
     input !== null &&
     "schemaVersion" in input &&
-    input.schemaVersion !== 1
+    input.schemaVersion !== 1 &&
+    input.schemaVersion !== 2
   )
     throw new Error(
       "Versão de backup incompatível. Atualize o aplicativo antes de restaurar."
     )
-  const backup = backupSchema.parse(input)
+  // V1 goals are discarded by the V2 schemas; actual set weights are unchanged.
+  const normalized =
+    typeof input === "object" &&
+    input !== null &&
+    "schemaVersion" in input &&
+    input.schemaVersion === 1
+      ? { ...input, schemaVersion: 2 }
+      : input
+  const backup = backupSchema.parse(normalized)
   for (const table of tables) {
     const keys = backup[table].map((row) => ("id" in row ? row.id : row.key))
     if (new Set(keys).size !== keys.length)
@@ -164,7 +173,6 @@ export function templatesCsv(data: Backup) {
       "Tipo",
       "Séries",
       "Repetições",
-      "Carga kg",
       "Segundos",
       "Observações",
     ],
@@ -186,7 +194,6 @@ export function templatesCsv(data: Backup) {
           row.type === "time" ? "Tempo" : "Peso e repetições",
           row.targetSets,
           row.type === "weight_reps" ? row.targetReps : "",
-          row.type === "weight_reps" ? row.targetWeight : "",
           row.type === "time" ? row.targetSeconds : "",
           row.notes,
         ]
@@ -212,7 +219,6 @@ export function historyCsv(data: Backup) {
       "Status sessão",
       "Meta séries",
       "Meta reps",
-      "Meta kg",
       "Meta segundos",
       "Observação fixa",
       "Observação exercício",
@@ -242,7 +248,6 @@ export function historyCsv(data: Backup) {
         session.status,
         exercise.targetSets,
         exercise.type === "weight_reps" ? exercise.targetReps : "",
-        exercise.type === "weight_reps" ? exercise.targetWeight : "",
         exercise.type === "time" ? exercise.targetSeconds : "",
         exercise.notesSnapshot,
         exercise.sessionNotes,

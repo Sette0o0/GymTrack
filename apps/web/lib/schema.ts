@@ -13,7 +13,6 @@ export const targetsSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("weight_reps"),
     targetSets: z.number().int().min(1).max(100),
-    targetWeight: z.number().min(0).max(10000),
     targetReps: z
       .string()
       .refine(validReps, "Informe repetições como 10 ou 8-12"),
@@ -104,7 +103,7 @@ export const settingSchema = z.object({
 })
 export const backupSchema = z.object({
   format: z.literal("gymtrack-backup"),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   exportedAt: timestamp,
   exerciseDefinitions: z.array(definitionSchema),
   workoutTemplates: z.array(templateSchema),
@@ -157,7 +156,6 @@ export function errorMessage(error: unknown) {
       code: "Código do treino",
       targetSets: "Séries",
       targetReps: "Repetições",
-      targetWeight: "Carga (kg)",
       targetSeconds: "Duração (segundos)",
       notes: "Observações",
       weightKg: "Carga (kg)",
