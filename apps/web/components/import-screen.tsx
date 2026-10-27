@@ -137,9 +137,10 @@ export function ImportScreen() {
             <h2>2. Abas e colunas</h2>
             <p className="subtle">
               {filename} · Campos não mapeados serão ignorados. Sem a coluna de
-              treino, o nome da aba será o código. Sem tipo, uma duração indica
-              exercício por tempo; caso contrário, peso e repetições. Carga
-              vazia começa em 0 kg.
+              treino, o nome da aba será o código. Sem tipo, uma duração ou
+              valores como “30–45 s” em repetições indicam exercício por tempo.
+              Intervalos de duração usam o limite superior e ficam preservados
+              nas observações. Carga vazia começa em 0 kg.
             </p>
             {sheets.map((sheet) => (
               <section className="sheet-panel" key={sheet.sheet}>
@@ -309,7 +310,12 @@ export function ImportScreen() {
                             {row.errors.join("; ")}
                           </span>
                         ) : (
-                          row.targets && targetLabel(row.targets)
+                          <>
+                            {row.targets && targetLabel(row.targets)}
+                            {row.durationHint && (
+                              <p className="subtle mt-1">{row.durationHint}</p>
+                            )}
+                          </>
                         )}
                       </td>
                     </tr>

@@ -47,7 +47,8 @@ Exemplo de cabeçalho e valores:
 
 - Sem coluna de treino, o nome da aba vira o código. Sem nome da ficha, usa-se o nome existente ou `Treino <código>`.
 - Séries e exercício são obrigatórios. Peso exige repetições positivas ou um intervalo crescente; carga vazia vira 0 kg. Tempo exige duração positiva. Escolha segundos ou minutos para valores numéricos; texto `mm:ss` independe dessa escolha.
-- Sem tipo explícito, duração preenchida indica tempo; os demais exercícios usam peso/repetições. Datas do Excel não são durações: use segundos, minutos numéricos ou texto `mm:ss`.
+- Sem tipo explícito, duração preenchida indica tempo. A coluna de repetições também reconhece valores por tempo como `45 s`, `30–45 s`, `1–1,5 min` ou `00:45`. Intervalos usam o limite superior como meta única e preservam o texto original nas observações; a conversão aparece na prévia. Um tipo explícito e a coluna de duração mapeada têm prioridade. Intervalos sem unidade, como `8–12`, continuam sendo repetições.
+- Sufixos `s`, `seg`, `segundos`, `min` e `minutos` definem a unidade independentemente do seletor da aba; texto `mm:ss` também independe dessa escolha. Datas do Excel não são durações: use valores numéricos ou texto.
 - Corrija o mapeamento ou desmarque explicitamente as linhas inválidas. A confirmação é bloqueada enquanto houver erros incluídos.
 - Para códigos existentes, escolha ignorar, atualizar a ficha ou criar outra com sufixo. A atualização substitui os exercícios da ficha e preserva sessões anteriores.
 - Colunas separadas por série não são suportadas nesta versão. Ajuste-as para metas gerais antes de importar.

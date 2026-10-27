@@ -248,6 +248,21 @@ test("Excel com múltiplas abas, exclusão de erro e exportação CSV offline", 
         ["Prancha", 2, "01:30"],
       ],
     },
+    {
+      sheet: "Treino revisado",
+      data: [
+        [
+          "Treino",
+          "Nome da ficha",
+          "Exercício",
+          "Séries",
+          "Repetições",
+          "Descanso (s)",
+          "Observações",
+        ],
+        ["E", "Sábado", "Prancha", 2, "30–45 s", 45, "Core"],
+      ],
+    },
   ]).toBuffer()
   await ready(page)
   await context.setOffline(true)
@@ -266,12 +281,18 @@ test("Excel com múltiplas abas, exclusão de erro e exportação CSV offline", 
   await page
     .getByRole("checkbox", { name: "Incluir B linha 3", exact: true })
     .uncheck()
+  await expect(
+    page.getByText(
+      "Duração “30–45 s” na coluna de repetições: usando o limite superior de 45 segundos.",
+      { exact: true }
+    )
+  ).toBeVisible()
   await page
     .getByRole("button", { name: "Confirmar importação", exact: true })
     .click()
   await page.getByRole("button", { name: "Confirmar", exact: true }).click()
   await expect(
-    page.getByText(/2 ficha\(s\) importada\(s\) com sucesso/)
+    page.getByText(/3 ficha\(s\) importada\(s\) com sucesso/)
   ).toBeVisible()
   await page.goto("/treinos/")
   await expect(
@@ -293,6 +314,22 @@ test("Excel com múltiplas abas, exclusão de erro e exportação CSV offline", 
   expect(csv.startsWith("\ufeff")).toBe(true)
   expect(csv).toContain('"37,5"')
   expect(csv).toContain('"90"')
+  expect(csv).toContain("Meta de duração importada: 30–45 s.")
+  await page.goto("/treinos/")
+  await page
+    .locator(".panel")
+    .filter({ has: page.getByRole("heading", { name: "Sábado", exact: true }) })
+    .getByRole("button", { name: "Iniciar", exact: true })
+    .click()
+  await expect(
+    page.getByLabel("Duração da série 1", { exact: true })
+  ).toHaveValue("00:45")
+  await expect(
+    page.getByLabel("Carga da série 1 (kg)", { exact: true })
+  ).toHaveCount(0)
+  await expect(
+    page.getByText(/Core\nMeta de duração importada: 30–45 s\./)
+  ).toBeVisible()
 })
 
 test("valores inválidos e falha de armazenamento não são anunciados como salvos", async ({

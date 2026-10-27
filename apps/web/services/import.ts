@@ -40,6 +40,7 @@ export type ImportRow = {
   exercise: string
   notes: string
   targets?: Targets
+  durationHint?: string
   errors: string[]
   excluded: boolean
 }
@@ -50,6 +51,47 @@ const normalize = (value: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
+
+const durationSuffix = /^(.*\d)\s*(s|segs?|segundos?|mins?|minutos?)\.?$/i
+function hasTimeNotation(value: string) {
+  return durationSuffix.test(value) || /^\d[\d:\s–—-]*:\d{2}$/.test(value)
+}
+function importDuration(
+  value: string,
+  defaultUnit: SheetInput["durationUnit"]
+) {
+  const match = value.match(durationSuffix)
+  const unit = match?.[2]?.toLocaleLowerCase()
+  const multiplier = unit
+    ? unit.startsWith("min")
+      ? 60
+      : 1
+    : defaultUnit === "minutes"
+      ? 60
+      : 1
+  const parts = (match?.[1] ?? value).trim().split(/\s*[-–—]\s*/)
+  if (parts.length > 2)
+    throw new Error("Duração: use um valor ou intervalo como 30–45 s.")
+  const values = parts.map((part) => {
+    const seconds = part.includes(":")
+      ? secondsValue(part)
+      : numberValue(part) * multiplier
+    const rounded = Math.round(seconds)
+    return Math.abs(seconds - rounded) < 1e-8 ? rounded : seconds
+  })
+  if (
+    !values.every(
+      (seconds) => Number.isInteger(seconds) && seconds >= 1 && seconds <= 86400
+    )
+  )
+    throw new Error("Duração: use valores entre 1 e 86400 segundos inteiros.")
+  if (values.length === 2 && values[0]! > values[1]!)
+    throw new Error(
+      "Duração: o intervalo deve estar em ordem crescente, como 30–45 s."
+    )
+  return { seconds: values.at(-1)!, range: values.length === 2 }
+}
+
 export function guessMapping(headers: unknown[]): Mapping {
   const aliases: Record<ImportField, string[]> = {
     code: ["treino", "codigo", "codigo do treino"],
@@ -105,12 +147,10 @@ export function previewImport(sheets: SheetInput[]): ImportRow[] {
         entry.errors.push("Nome da ficha: até 200 caracteres")
       if (!entry.exercise || entry.exercise.length > 200)
         entry.errors.push("Exercício: obrigatório, até 200 caracteres")
-      if (entry.notes.length > 10000)
-        entry.errors.push("Observações: até 10.000 caracteres")
       const typeText = normalize(read("type"))
       const time =
         ["tempo", "time", "duracao"].includes(typeText) ||
-        (!typeText && !!read("seconds"))
+        (!typeText && (!!read("seconds") || hasTimeNotation(read("reps"))))
       if (
         typeText &&
         ![
@@ -127,14 +167,25 @@ export function previewImport(sheets: SheetInput[]): ImportRow[] {
         entry.errors.push("Tipo: use peso ou tempo")
       try {
         const sets = numberValue(read("sets"))
+        const durationSource = read("seconds") || read("reps")
+        const parsedDuration = time
+          ? importDuration(durationSource, sheet.durationUnit)
+          : undefined
+        if (parsedDuration && (parsedDuration.range || !read("seconds"))) {
+          entry.durationHint = `Duração “${durationSource}”${!read("seconds") ? " na coluna de repetições" : ""}: ${parsedDuration.range ? "usando o limite superior de " : "usando "}${parsedDuration.seconds} segundos.`
+          if (parsedDuration.range)
+            entry.notes = [
+              entry.notes,
+              `Meta de duração importada: ${durationSource}.`,
+            ]
+              .filter(Boolean)
+              .join("\n")
+        }
         const target = time
           ? {
               type: "time",
               targetSets: sets,
-              targetSeconds: read("seconds").includes(":")
-                ? secondsValue(read("seconds"))
-                : numberValue(read("seconds")) *
-                  (sheet.durationUnit === "minutes" ? 60 : 1),
+              targetSeconds: parsedDuration!.seconds,
             }
           : {
               type: "weight_reps",
@@ -146,6 +197,8 @@ export function previewImport(sheets: SheetInput[]): ImportRow[] {
       } catch (error) {
         entry.errors.push(errorMessage(error))
       }
+      if (entry.notes.length > 10000)
+        entry.errors.push("Observações: até 10.000 caracteres")
       result.push(entry)
     }
   }

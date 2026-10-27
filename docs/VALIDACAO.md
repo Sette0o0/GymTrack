@@ -19,6 +19,13 @@ Ambiente: Windows, Node.js 24.14.0 e npm 11.21.0.
 
 A CI está configurada, mas sua execução no GitHub depende do envio do repositório. Os itens em aparelhos reais abaixo permanecem pendentes.
 
+### Regressão de importação por tempo — 26/10/2026
+
+- Reproduzida a linha 33 de “Treino revisado”: ficha E, Sábado, Prancha, 2 séries e `30–45 s` na coluna de repetições.
+- A importação reconhece a duração, usa 45 segundos como meta e preserva `30–45 s` nas observações. A prévia explica a conversão; intervalos sem unidade continuam sendo repetições.
+- Lint, tipos, build e 33 testes de dados aprovados.
+- O cenário de Excel foi repetido offline em Chromium desktop, perfil Android e WebKit com perfil iPhone: 3 testes aprovados, incluindo a importação e execução da prancha por tempo.
+
 ## Aparelhos reais — pendente
 
 É necessário executar os itens abaixo em um Android/Chrome e em um iPhone/Safari, usando o domínio HTTPS definitivo. Testes com Playwright não substituem estes itens. Anote aparelho, versão do sistema/navegador e data ao validar.

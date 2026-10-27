@@ -424,6 +424,113 @@ function sheet(data: unknown[][]): SheetInput {
   }
 }
 describe("importação Excel", () => {
+  it("importa a prancha da linha 33 com intervalo em segundos na coluna de repetições", async () => {
+    const input = sheet([
+      [
+        "Treino",
+        "Nome da ficha",
+        "Exercício",
+        "Séries",
+        "Repetições",
+        "Descanso (s)",
+        "Observações",
+      ],
+      ...Array.from({ length: 31 }, () => []),
+      ["E", "Sábado", "Prancha", 2, "30–45 s", 45, "Core"],
+    ])
+    input.sheet = "Treino revisado"
+    const rows = previewImport([input])
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      sheet: "Treino revisado",
+      row: 33,
+      code: "E",
+      name: "Sábado",
+      errors: [],
+      targets: { type: "time", targetSets: 2, targetSeconds: 45 },
+    })
+    expect(rows[0]?.notes).toContain("Core")
+    expect(rows[0]?.notes).toContain("30–45 s")
+    expect(rows[0]?.targets).not.toHaveProperty("targetWeight")
+    await importRows(rows, {}, database)
+    const template = (await database.workoutTemplates.toArray())[0]!
+    expect(template).toMatchObject({ code: "E", name: "Sábado" })
+    expect((await database.exerciseDefinitions.toArray())[0]?.defaultType).toBe(
+      "time"
+    )
+    await startSession(template.id, database)
+    const sets = await database.setRecords.toArray()
+    expect(sets).toHaveLength(2)
+    expect(
+      sets.every((set) => set.type === "time" && set.durationSeconds === 45)
+    ).toBe(true)
+  })
+
+  it.each(["30-45 s", "30–45 seg", "30 — 45 segundos", "00:30–00:45"])(
+    "reconhece a duração %s sem mudar intervalos de repetições sem unidade",
+    (value) => {
+      const rows = previewImport([
+        sheet([
+          ["Exercício", "Séries", "Repetições"],
+          ["Prancha", 2, value],
+          ["Supino", 3, "8–12"],
+        ]),
+      ])
+      expect(rows[0]).toMatchObject({
+        errors: [],
+        targets: { type: "time", targetSeconds: 45 },
+      })
+      expect(rows[1]).toMatchObject({
+        errors: [],
+        targets: { type: "weight_reps", targetReps: "8–12" },
+      })
+    }
+  )
+
+  it("usa unidades explícitas e respeita tipo e duração mapeados", () => {
+    const input = sheet([
+      ["Exercício", "Séries", "Repetições", "Tipo", "Duração"],
+      ["Prancha", 2, "30–45 s", null, null],
+      ["Prancha", 2, "30–45 s", null, "1–1,5 min"],
+      ["Prancha", 2, "30–45 s", "peso", null],
+      ["Prancha", 2, "30–45 s", "tempo", "00:50"],
+      ["Prancha", 2, null, "tempo", "1,1 min"],
+    ])
+    input.durationUnit = "minutes"
+    const rows = previewImport([input])
+    expect(rows[0]).toMatchObject({
+      errors: [],
+      targets: { type: "time", targetSeconds: 45 },
+    })
+    expect(rows[1]).toMatchObject({
+      errors: [],
+      targets: { type: "time", targetSeconds: 90 },
+    })
+    expect(rows[2]?.errors.length).toBeGreaterThan(0)
+    expect(rows[3]).toMatchObject({
+      errors: [],
+      targets: { type: "time", targetSeconds: 50 },
+    })
+    expect(rows[4]).toMatchObject({
+      errors: [],
+      targets: { type: "time", targetSeconds: 66 },
+    })
+  })
+
+  it.each(["45–30 s", "0–45 s", "30–90000 s", "00:30–00:99", "30–45–60 s"])(
+    "recusa a duração inválida %s",
+    (value) => {
+      const rows = previewImport([
+        sheet([
+          ["Exercício", "Séries", "Repetições"],
+          ["Prancha", 2, value],
+        ]),
+      ])
+      expect(rows[0]?.errors.length).toBeGreaterThan(0)
+      expect(rows[0]?.targets).toBeUndefined()
+    }
+  )
+
   it("mapeia colunas, interpreta repetições e tempo, indicando a linha inválida", () => {
     const rows = previewImport([
       sheet([
