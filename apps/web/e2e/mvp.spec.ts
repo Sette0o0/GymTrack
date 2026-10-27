@@ -158,7 +158,9 @@ test("ficha, séries, recuperação, histórico e backup funcionam totalmente of
     page.getByRole("button", { name: "Parar", exact: true })
   ).toBeVisible()
   await page.getByRole("button", { name: "Parar", exact: true }).click()
-  await page.getByLabel("Duração da série 1", { exact: true }).fill("00:45")
+  await page
+    .getByLabel("Duração da série 1 (segundos)", { exact: true })
+    .fill("45")
   await saved(page)
   await page
     .getByRole("button", { name: "Concluir série 1", exact: true })
@@ -280,6 +282,20 @@ test("Excel com múltiplas abas, exclusão de erro e exportação CSV offline", 
   await page
     .getByRole("checkbox", { name: "Incluir B linha 3", exact: true })
     .uncheck()
+  const header = page.getByLabel("Linha do cabeçalho · B", { exact: true })
+  await header.fill("")
+  await expect(header).toHaveValue("")
+  await expect(
+    page.getByRole("button", { name: "Confirmar importação", exact: true })
+  ).toBeDisabled()
+  await header.fill("999")
+  await expect(header).toHaveValue("999")
+  await expect(header).toHaveAttribute("aria-invalid", "true")
+  await header.fill("1")
+  // Header changes intentionally reset excluded rows.
+  await page
+    .getByRole("checkbox", { name: "Incluir B linha 3", exact: true })
+    .uncheck()
   await expect(
     page.getByText(
       "Duração “30–45 s” na coluna de repetições: usando o limite superior de 45 segundos.",
@@ -322,8 +338,8 @@ test("Excel com múltiplas abas, exclusão de erro e exportação CSV offline", 
     .getByRole("button", { name: "Iniciar", exact: true })
     .click()
   await expect(
-    page.getByLabel("Duração da série 1", { exact: true })
-  ).toHaveValue("00:45")
+    page.getByLabel("Duração da série 1 (segundos)", { exact: true })
+  ).toHaveValue("45")
   await expect(
     page.getByLabel("Carga da série 1 (kg)", { exact: true })
   ).toHaveCount(0)
@@ -338,7 +354,7 @@ test("valores inválidos e falha de armazenamento não são anunciados como salv
   await ready(page)
   await createWorkout(page)
   await start(page)
-  await page.getByLabel("Carga da série 1 (kg)", { exact: true }).fill("-1")
+  await page.getByLabel("Carga da série 1 (kg)", { exact: true }).fill("")
   await expect(
     page.getByText("Existem alterações não salvas", { exact: true })
   ).toBeVisible()

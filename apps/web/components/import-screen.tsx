@@ -4,6 +4,8 @@ import { useMemo, useState } from "react"
 import readExcelFile from "read-excel-file/browser"
 import { FileSpreadsheet, Upload } from "lucide-react"
 import { Input } from "@workspace/ui/components/input"
+import { NumberInput } from "@workspace/ui/components/number-input"
+import { numericValue } from "@workspace/ui/lib/numeric"
 import { useApp } from "./app-shell"
 import {
   Choice,
@@ -32,10 +34,22 @@ export function ImportScreen() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [filename, setFilename] = useState("")
+  const [headerDrafts, setHeaderDrafts] = useState<Record<string, string>>({})
+  function validHeader(sheet: SheetInput) {
+    const value = numericValue(
+      headerDrafts[sheet.sheet] ?? String(sheet.headerRow),
+      true
+    )
+    return (
+      value !== null && value >= 1 && value <= Math.max(1, sheet.data.length)
+    )
+  }
   const rows = useMemo(() => previewImport(sheets), [sheets])
   if (!data) return null
   const included = rows.filter((row) => !row.excluded)
-  const invalid = included.some((row) => row.errors.length)
+  const invalid =
+    sheets.some((sheet) => sheet.selected && !validHeader(sheet)) ||
+    included.some((row) => row.errors.length)
   const codes = [
     ...new Set(included.map((row) => row.code.toLocaleLowerCase())),
   ]
@@ -83,6 +97,7 @@ export function ImportScreen() {
                   setSuccess("")
                   setSheets([])
                   setPolicies({})
+                  setHeaderDrafts({})
                   setFilename(file.name)
                   try {
                     if (!file.name.toLocaleLowerCase().endsWith(".xlsx"))
@@ -159,20 +174,30 @@ export function ImportScreen() {
                     <div className="form-grid">
                       <Field label={`Linha do cabeçalho · ${sheet.sheet}`}>
                         {(id) => (
-                          <Input
+                          <NumberInput
                             id={id}
-                            type="number"
+                            integer
+                            required
                             min={1}
                             max={Math.max(1, sheet.data.length)}
-                            value={sheet.headerRow}
-                            onChange={(event) => {
-                              const headerRow = Math.max(
-                                1,
-                                Math.min(
-                                  sheet.data.length,
-                                  Number(event.target.value) || 1
-                                )
+                            value={
+                              headerDrafts[sheet.sheet] ??
+                              String(sheet.headerRow)
+                            }
+                            aria-invalid={!validHeader(sheet)}
+                            onValueChange={(value) => {
+                              setHeaderDrafts((previous) => ({
+                                ...previous,
+                                [sheet.sheet]: value,
+                              }))
+                              const headerRow = Number(value)
+                              if (
+                                !value ||
+                                !Number.isInteger(headerRow) ||
+                                headerRow < 1 ||
+                                headerRow > sheet.data.length
                               )
+                                return
                               update(sheet.sheet, {
                                 headerRow,
                                 mapping: guessMapping(
@@ -184,6 +209,12 @@ export function ImportScreen() {
                           />
                         )}
                       </Field>
+                      {!validHeader(sheet) && (
+                        <p className="invalid-hint" role="alert">
+                          Informe uma linha de cabeçalho entre 1 e{" "}
+                          {Math.max(1, sheet.data.length)}.
+                        </p>
+                      )}
                       <Field label={`Unidade da duração · ${sheet.sheet}`}>
                         {(id) => (
                           <Choice
@@ -393,7 +424,7 @@ export function ImportScreen() {
               />
               {invalid && (
                 <span className="invalid-hint">
-                  Há linhas inválidas selecionadas.
+                  Confira os cabeçalhos e as linhas inválidas selecionadas.
                 </span>
               )}
             </div>

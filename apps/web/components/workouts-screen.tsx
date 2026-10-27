@@ -15,6 +15,8 @@ import {
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
+import { NumberInput } from "@workspace/ui/components/number-input"
+import { numericValue } from "@workspace/ui/lib/numeric"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { Badge } from "@workspace/ui/components/badge"
 import { useApp } from "./app-shell"
@@ -35,10 +37,10 @@ import {
 import { startSession } from "@/services/sessions"
 import {
   definitionSchema,
+  duration as formatDuration,
   errorMessage,
   newId,
   numberValue,
-  secondsValue,
   targetsSchema,
   templateExerciseSchema,
   templateSchema,
@@ -204,7 +206,8 @@ type Draft = {
   exerciseId: string
   type: "weight_reps" | "time"
   sets: string
-  reps: string
+  repsMin: string
+  repsMax: string
   seconds: string
   notes: string
 }
@@ -214,7 +217,14 @@ function toDraft(exercise: TemplateExercise): Draft {
     exerciseId: exercise.exerciseId,
     type: exercise.type,
     sets: String(exercise.targetSets),
-    reps: exercise.type === "weight_reps" ? exercise.targetReps : "8-12",
+    repsMin:
+      exercise.type === "weight_reps"
+        ? exercise.targetReps.split(/[-–]/)[0]!.trim()
+        : "8",
+    repsMax:
+      exercise.type === "weight_reps"
+        ? (exercise.targetReps.split(/[-–]/)[1] ?? exercise.targetReps).trim()
+        : "12",
     seconds: exercise.type === "time" ? String(exercise.targetSeconds) : "45",
     notes: exercise.notes,
   }
@@ -256,7 +266,8 @@ function WorkoutEditor({
         exerciseId: definition.id,
         type: definition.defaultType,
         sets: "3",
-        reps: "8-12",
+        repsMin: "8",
+        repsMax: "12",
         seconds: "45",
         notes: "",
       },
@@ -281,8 +292,13 @@ function WorkoutEditor({
         name,
         description,
       })
-      const exercises = rows.map((row, order) =>
-        templateExerciseSchema.parse({
+      const exercises = rows.map((row, order) => {
+        if (
+          row.type === "weight_reps" &&
+          numberValue(row.repsMin) > numberValue(row.repsMax)
+        )
+          throw new Error("As repetições mínimas não podem superar as máximas.")
+        return templateExerciseSchema.parse({
           id: row.id,
           templateId: template.id,
           exerciseId: row.exerciseId,
@@ -293,16 +309,19 @@ function WorkoutEditor({
               ? {
                   type: row.type,
                   targetSets: numberValue(row.sets),
-                  targetSeconds: secondsValue(row.seconds),
+                  targetSeconds: numberValue(row.seconds),
                 }
               : {
                   type: row.type,
                   targetSets: numberValue(row.sets),
-                  targetReps: row.reps,
+                  targetReps:
+                    row.repsMin === row.repsMax
+                      ? row.repsMin
+                      : `${row.repsMin}-${row.repsMax}`,
                 }
           ),
         })
-      )
+      })
       const saved = await run(async () => {
         await saveWorkout(nextTemplate, exercises)
         return true
@@ -423,30 +442,48 @@ function WorkoutEditor({
                 </Field>
                 <Field label="Quantidade de séries">
                   {(id) => (
-                    <Input
+                    <NumberInput
                       id={id}
                       required
-                      inputMode="numeric"
+                      integer
+                      min={1}
+                      max={100}
                       value={row.sets}
-                      onChange={(event) =>
-                        update(row.id, { sets: event.target.value })
-                      }
+                      onValueChange={(sets) => update(row.id, { sets })}
                     />
                   )}
                 </Field>
                 {row.type === "weight_reps" ? (
                   <>
-                    <Field
-                      label="Meta de repetições"
-                      hint="Um valor ou intervalo, como 8-12."
-                    >
+                    <Field label="Repetições mínimas">
                       {(id) => (
-                        <Input
+                        <NumberInput
                           id={id}
                           required
-                          value={row.reps}
-                          onChange={(event) =>
-                            update(row.id, { reps: event.target.value })
+                          integer
+                          min={1}
+                          max={10000}
+                          value={row.repsMin}
+                          onValueChange={(repsMin) =>
+                            update(row.id, { repsMin })
+                          }
+                        />
+                      )}
+                    </Field>
+                    <Field
+                      label="Repetições máximas"
+                      hint="Para uma meta fixa, use o mesmo valor no mínimo e no máximo."
+                    >
+                      {(id) => (
+                        <NumberInput
+                          id={id}
+                          required
+                          integer
+                          min={1}
+                          max={10000}
+                          value={row.repsMax}
+                          onValueChange={(repsMax) =>
+                            update(row.id, { repsMax })
                           }
                         />
                       )}
@@ -454,18 +491,18 @@ function WorkoutEditor({
                   </>
                 ) : (
                   <Field
-                    label="Meta de duração"
-                    hint="Segundos ou mm:ss. Ex.: 45 ou 01:30."
+                    label="Meta de duração (segundos)"
+                    hint={`Duração: ${numericValue(row.seconds, true) === null ? "—" : formatDuration(numericValue(row.seconds, true)!)} (mm:ss). Digite em segundos.`}
                   >
                     {(id) => (
-                      <Input
+                      <NumberInput
                         id={id}
                         required
-                        inputMode="text"
+                        integer
+                        min={1}
+                        max={86400}
                         value={row.seconds}
-                        onChange={(event) =>
-                          update(row.id, { seconds: event.target.value })
-                        }
+                        onValueChange={(seconds) => update(row.id, { seconds })}
                       />
                     )}
                   </Field>

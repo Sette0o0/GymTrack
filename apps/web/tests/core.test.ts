@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { GymDatabase } from "@/db/database"
 import Dexie from "dexie"
+import { isNumericDraft, numericValue } from "@workspace/ui/lib/numeric"
 import { snapshot } from "@/db/repository"
 import {
   newId,
@@ -35,6 +36,40 @@ import {
 
 let database: GymDatabase
 const databases: GymDatabase[] = []
+describe("texto dos campos numéricos", () => {
+  it.each([
+    "a",
+    "1e3",
+    "1E3",
+    "12kg",
+    "-1",
+    "+1",
+    "1 000",
+    "1.000,5",
+    "1,000.5",
+    "1..2",
+    "Infinity",
+    "0x10",
+  ])("recusa conteúdo inválido sem extrair dígitos: %s", (text) => {
+    expect(isNumericDraft(text)).toBe(false)
+    expect(numericValue(text)).toBeNull()
+  })
+  it("aceita zero e ambos os separadores decimais sem agrupamento ou arredondamento", () => {
+    expect(numericValue("0")).toBe(0)
+    expect(numericValue("1.234")).toBe(1.234)
+    expect(numericValue("1,234")).toBe(1.234)
+    expect(numericValue("57,1234567")).toBe(57.1234567)
+  })
+  it("permite limpar e digitar um decimal parcial, sem validá-los como números completos", () => {
+    for (const text of ["", ",", ".", "57,"]) {
+      expect(isNumericDraft(text)).toBe(true)
+      expect(numericValue(text)).toBeNull()
+    }
+    expect(isNumericDraft("2,5", true)).toBe(false)
+    expect(numericValue("2.5", true)).toBeNull()
+    expect(numericValue("12", true)).toBe(12)
+  })
+})
 function createDatabase() {
   const value = new GymDatabase(`test-${newId()}`)
   databases.push(value)

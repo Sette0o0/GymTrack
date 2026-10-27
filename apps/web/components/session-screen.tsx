@@ -14,7 +14,8 @@ import {
   Undo2,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
+import { NumberInput } from "@workspace/ui/components/number-input"
+import { numericText, numericValue } from "@workspace/ui/lib/numeric"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { Progress } from "@workspace/ui/components/progress"
 import { useApp } from "./app-shell"
@@ -34,13 +35,7 @@ import {
   toggleTimer,
   updateSet,
 } from "@/services/sessions"
-import {
-  duration,
-  numberValue,
-  secondsValue,
-  weight,
-  type SetRecord,
-} from "@/lib/schema"
+import { duration, weight, type SetRecord } from "@/lib/schema"
 
 export function SessionScreen() {
   const { data, run, busy, unsaved, settle } = useApp()
@@ -347,7 +342,6 @@ function SetRow({ set, disabled }: { set: SetRecord; disabled: boolean }) {
             fieldKey={`${set.id}/weight`}
             value={set.weightKg}
             disabled={disabled}
-            parse={numberValue}
             max={10000}
             min={0}
             onValue={(value) =>
@@ -362,7 +356,6 @@ function SetRow({ set, disabled }: { set: SetRecord; disabled: boolean }) {
             fieldKey={`${set.id}/reps`}
             value={set.repetitions}
             disabled={disabled}
-            parse={numberValue}
             max={10000}
             min={1}
             integer
@@ -377,15 +370,14 @@ function SetRow({ set, disabled }: { set: SetRecord; disabled: boolean }) {
       ) : (
         <>
           <EditableValue
-            label={`Duração da série ${set.setNumber}`}
+            label={`Duração da série ${set.setNumber} (segundos)`}
             fieldKey={`${set.id}/time`}
             value={set.durationSeconds}
             disabled={disabled || running}
-            parse={secondsValue}
             max={86400}
             min={1}
             integer
-            format={duration}
+            durationHint
             onValue={(value) =>
               run(
                 () => updateSet(set.id, { durationSeconds: value }),
@@ -487,8 +479,7 @@ function EditableValue({
   fieldKey,
   value,
   disabled,
-  parse,
-  format = (value) => String(value).replace(".", ","),
+  durationHint,
   integer,
   min,
   max,
@@ -498,30 +489,32 @@ function EditableValue({
   fieldKey: string
   value: number
   disabled: boolean
-  parse: (value: string) => number
-  format?: (value: number) => string
+  durationHint?: boolean
   integer?: boolean
   min: number
   max: number
   onValue: (value: number) => Promise<unknown>
 }) {
   const { invalid } = useApp()
-  const [text, setText] = useState(() => format(value))
+  const [text, setText] = useState(() => numericText(String(value)))
   const [error, setError] = useState("")
   const editing = useRef(false)
+  const invalidDraft = useRef(false)
   useEffect(() => {
-    if (!editing.current) setText(format(value))
-  }, [value, format])
+    if (!editing.current && !invalidDraft.current)
+      setText(numericText(String(value)))
+  }, [value])
   useEffect(() => () => invalid(fieldKey, false), [fieldKey, invalid])
   return (
     <Field label={label}>
       {(id) => (
         <>
-          <Input
+          <NumberInput
             id={id}
-            inputMode={
-              parse === secondsValue ? "text" : integer ? "numeric" : "decimal"
-            }
+            required
+            integer={integer}
+            min={min}
+            max={max}
             value={text}
             disabled={disabled}
             aria-invalid={!!error}
@@ -532,11 +525,16 @@ function EditableValue({
             onBlur={() => {
               editing.current = false
             }}
-            onChange={(event) => {
-              const next = event.target.value
+            onValueChange={(next) => {
               setText(next)
               try {
-                const parsed = parse(next)
+                const parsed = numericValue(next, integer)
+                if (parsed === null)
+                  throw new Error(
+                    next
+                      ? "Informe um número completo."
+                      : "Preencha este campo antes de continuar."
+                  )
                 if (
                   parsed < min ||
                   parsed > max ||
@@ -546,9 +544,11 @@ function EditableValue({
                     `Use ${integer ? "um inteiro" : "um valor"} entre ${min} e ${max}.`
                   )
                 setError("")
+                invalidDraft.current = false
                 invalid(fieldKey, false)
                 void onValue(parsed)
               } catch (cause) {
+                invalidDraft.current = true
                 setError(
                   cause instanceof Error ? cause.message : "Valor inválido"
                 )
@@ -556,6 +556,14 @@ function EditableValue({
               }
             }}
           />
+          {durationHint && (
+            <span className="subtle">
+              {numericValue(text, true) === null
+                ? "—"
+                : duration(numericValue(text, true)!)}{" "}
+              (mm:ss)
+            </span>
+          )}
           {error && (
             <span className="invalid-hint" id={`${id}-error`}>
               {error}
