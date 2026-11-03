@@ -381,3 +381,20 @@ export async function deleteSession(id: string, database: GymDatabase = db) {
     }
   )
 }
+
+// Unlike history deletion, cancellation must never discard a completed session.
+export async function cancelSession(id: string, database: GymDatabase = db) {
+  await database.transaction(
+    "rw",
+    [database.workoutSessions, database.sessionExercises, database.setRecords],
+    async () => {
+      const session = await database.workoutSessions.get(id)
+      if (!session) return
+      if (session.status === "completed")
+        throw new Error(
+          "Este treino já foi concluído. Seu registro foi preservado no histórico."
+        )
+      await deleteSession(id, database)
+    }
+  )
+}

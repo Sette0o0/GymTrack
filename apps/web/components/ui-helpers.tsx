@@ -139,6 +139,8 @@ export function ConfirmAction({
   onConfirm,
   disabled,
   destructive = false,
+  cancelLabel = "Cancelar",
+  confirmLabel = "Confirmar",
 }: {
   label: ReactNode
   title: string
@@ -146,16 +148,22 @@ export function ConfirmAction({
   onConfirm: () => Promise<unknown>
   disabled?: boolean
   destructive?: boolean
+  cancelLabel?: string
+  confirmLabel?: string
 }) {
   const [open, setOpen] = useState(false)
   const [working, setWorking] = useState(false)
+  const [actionError, setActionError] = useState("")
   return (
     <>
       <Button
         title={title}
         disabled={disabled}
         variant={destructive ? "destructive" : "outline"}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setActionError("")
+          setOpen(true)
+        }}
       >
         {label}
       </Button>
@@ -172,28 +180,37 @@ export function ConfirmAction({
               {description}
             </DialogDescription>
           </DialogHeader>
+          {actionError && (
+            <p role="alert" className="invalid-hint">
+              {actionError}
+            </p>
+          )}
           <DialogFooter>
             <Button
               disabled={working}
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Cancelar
+              {cancelLabel}
             </Button>
             <Button
               disabled={working}
               variant={destructive ? "destructive" : "default"}
               onClick={async () => {
                 setWorking(true)
+                setActionError("")
                 try {
-                  await onConfirm()
-                  setOpen(false)
+                  if ((await onConfirm()) !== false) setOpen(false)
+                  else
+                    setActionError(
+                      "Não foi possível concluir a ação. Seus dados foram preservados. Tente novamente."
+                    )
                 } finally {
                   setWorking(false)
                 }
               }}
             >
-              {working ? "Aguarde…" : "Confirmar"}
+              {working ? "Aguarde…" : confirmLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

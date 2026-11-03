@@ -35,6 +35,7 @@ import { snapshot } from "@/db/repository"
 import { db } from "@/db/database"
 import { errorMessage, type Backup } from "@/lib/schema"
 import { useMobileKeyboard } from "@/hooks/use-mobile-keyboard"
+import { cancelSession } from "@/services/sessions"
 
 type AppState = {
   data?: Backup
@@ -43,6 +44,7 @@ type AppState = {
   run: <T>(job: () => Promise<T>, saveKey?: string) => Promise<T | undefined>
   invalid: (key: string, value: boolean) => void
   settle: () => Promise<boolean>
+  discardSession: (id: string) => Promise<boolean>
 }
 const AppContext = createContext<AppState | null>(null)
 export function useApp() {
@@ -132,6 +134,41 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     return true
   }, [])
+
+  const discardSession = async (id: string) => {
+    const exercises =
+      result?.data?.sessionExercises.filter((row) => row.sessionId === id) ?? []
+    const exerciseIds = new Set(exercises.map((row) => row.id))
+    const sets =
+      result?.data?.setRecords.filter((row) =>
+        exerciseIds.has(row.sessionExerciseId)
+      ) ?? []
+    const keys = new Set([
+      `notes:${id}`,
+      ...exercises.map((row) => `notes:${row.id}`),
+      ...sets.flatMap((row) => [
+        `${row.id}/weight`,
+        `${row.id}/reps`,
+        `${row.id}/time`,
+      ]),
+    ])
+    // run serializes this deletion after all queued writes. Only committed
+    // cancellation may discard invalid drafts or failed retries for this session.
+    return (
+      (await run(async () => {
+        await cancelSession(id)
+        for (const key of keys) invalidFields.current.delete(key)
+        failures.current = failures.current.filter(
+          (failure) => !keys.has(failure.key)
+        )
+        setInvalidCount(invalidFields.current.size)
+        setFailedCount(failures.current.length)
+        if (!invalidFields.current.size && !failures.current.length)
+          setError("")
+        return true
+      })) === true
+    )
+  }
 
   const storedTheme = result?.data?.settings.find(
     (row) => row.key === "theme"
@@ -228,6 +265,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         run,
         invalid,
         settle,
+        discardSession,
       }}
     >
       <div className="app-frame">

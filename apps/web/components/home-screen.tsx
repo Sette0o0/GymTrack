@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -22,6 +23,11 @@ import { localDate } from "@/lib/schema"
 
 export function HomeScreen() {
   const { data } = useApp()
+  const [cancelled] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("cancelado") === "1"
+  )
   if (!data) return null
   const templates = sortWorkouts(
     data.workoutTemplates.filter((row) => !row.archived)
@@ -58,6 +64,11 @@ export function HomeScreen() {
           </a>
         }
       />
+      {cancelled && (
+        <p className="success-banner" role="status">
+          Treino cancelado. Os registros desta sessão foram descartados.
+        </p>
+      )}
       <section className="hero-panel">
         <div className="hero-copy">
           <span className="hero-tag">

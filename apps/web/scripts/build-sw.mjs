@@ -35,6 +35,8 @@ const { warnings, count, size } = await generateSW({
   ignoreURLParametersMatching: [
     /^id$/,
     /^novo$/,
+    /^editar$/,
+    /^cancelado$/,
     /^exercicio$/,
     /^utm_/,
     /^fbclid$/,

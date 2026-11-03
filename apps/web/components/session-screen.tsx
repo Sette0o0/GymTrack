@@ -48,7 +48,7 @@ import {
 } from "@/lib/schema"
 
 export function SessionScreen() {
-  const { data, run, busy, unsaved, settle } = useApp()
+  const { data, run, busy, unsaved, settle, discardSession } = useApp()
   const [open, setOpen] = useState<string[]>([])
   const [cardError, setCardError] = useState("")
   const expandRequest = useRef(0)
@@ -100,6 +100,9 @@ export function SessionScreen() {
     exercises.some((item) => item.id === row.sessionExerciseId)
   )
   const done = allSets.filter((row) => row.status !== "pending").length
+  const completedSets = allSets.filter(
+    (row) => row.status === "completed"
+  ).length
   const paused = session.status === "paused"
   async function changeExercise(next: string[]) {
     const request = ++expandRequest.current
@@ -239,6 +242,34 @@ export function SessionScreen() {
                 return true
               })
               if (saved) window.location.assign(`/historico/?id=${session.id}`)
+            }}
+          />
+          <ConfirmAction
+            label="Cancelar treino"
+            title="Cancelar este treino?"
+            destructive
+            cancelLabel="Continuar treinando"
+            confirmLabel="Cancelar treino"
+            description={
+              <>
+                <p>
+                  {completedSets}{" "}
+                  {completedSets === 1
+                    ? "série concluída será descartada"
+                    : "séries concluídas serão descartadas"}
+                  .
+                </p>
+                <p>
+                  Esta ação apaga definitivamente os registros e observações
+                  desta sessão. O treino não contará no histórico nem avançará a
+                  sequência das fichas.
+                </p>
+              </>
+            }
+            onConfirm={async () => {
+              if (!(await discardSession(session.id))) return false
+              window.location.assign("/?cancelado=1")
+              return true
             }}
           />
         </div>
