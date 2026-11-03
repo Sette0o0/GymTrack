@@ -22,6 +22,42 @@ async function sessionCount(page: Page) {
   )
 }
 
+test("ficha vazia, arquivada ou inexistente não inicia sessão", async ({
+  page,
+  context,
+}) => {
+  await ready(page)
+  await context.setOffline(true)
+  await page.goto("/treinos/?novo=1")
+  await page.getByLabel("Código do treino", { exact: true }).fill("B")
+  await page.getByLabel("Nome da ficha", { exact: true }).fill("Ficha vazia")
+  await page.getByRole("button", { name: "Salvar ficha", exact: true }).click()
+  await page.locator(".workout-summary").click()
+  const url = page.url()
+  await expect(
+    page.getByRole("button", { name: "Começar treino", exact: true })
+  ).toBeDisabled()
+  await expect(
+    page.getByText("Adicione exercícios à ficha antes de começar.", {
+      exact: true,
+    })
+  ).toBeVisible()
+  await page.goto("/treinos/")
+  await page.getByTitle("Arquivar ficha?", { exact: true }).click()
+  await page.getByRole("button", { name: "Confirmar", exact: true }).click()
+  await expect(page.locator(".workout-summary")).toHaveCount(0)
+  await page.goto(url)
+  await expect(
+    page.getByRole("button", { name: "Começar treino", exact: true })
+  ).toBeDisabled()
+  await expect(page.getByText(/Esta ficha está arquivada/)).toBeVisible()
+  await page.goto("/treinos/?id=inexistente")
+  await expect(
+    page.getByRole("heading", { name: "Ficha não encontrada", exact: true })
+  ).toBeVisible()
+  expect(await sessionCount(page)).toBe(0)
+})
+
 test("próxima ficha por código, detalhes sem iniciar e retomada funcionam offline", async ({
   page,
   context,

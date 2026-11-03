@@ -41,6 +41,16 @@ Ambiente: Windows, Node.js 24.14.0 e npm 11.21.0.
 
 O gráfico de médias simples por sessão permanece registrado no `PLANO.md` como melhoria futura, com acesso por modal, sheet ou drawer e prioridade para celular.
 
+### Navegação, cancelamento e fichas no celular — 03/11/2026
+
+- `npm run lint`, `npm run typecheck`, `npm test` e `npm run build`: aprovados. São **67 testes de dados**; o build inclui 73 recursos no precache, aproximadamente 1,53 MB.
+- `npm run test:e2e`: **36 testes aprovados**, 12 em Chromium desktop, 12 no perfil Android e 12 em WebKit com perfil iPhone, sobre o build estático.
+- Próxima ficha validada em ordem natural de código, usando a finalização mais recente, retorno ao início, ausência de histórico, ficha arquivada/removida e prioridade para sessão pendente. Abertura e recarga dos detalhes não criam sessões; início exige o botão dentro da ficha. Fichas vazias, arquivadas e inexistentes não iniciam sessões.
+- Cancelamento validado para sessões ativas e pausadas, com aviso de séries concluídas, desistência da confirmação, descarte de campos inválidos e limpeza das tentativas de gravação da sessão somente após exclusão confirmada pelo banco. Falhas mantêm o diálogo com orientação e permitem tentar novamente. Testes de dados cobrem chamadas repetidas, concorrência entre conexões, proteção de sessões finalizadas, preservação de histórico/fichas e rollback de exclusões parciais.
+- Lista, detalhes e editor de fichas revisados com código de 30 caracteres, nomes longos e descrição sem espaços, em 320, 360, 390 e 430 px, horizontal 844 × 390 e desktop 1280 × 900. Os três perfis verificam claro/escuro, ausência de overflow na página e dentro dos cards, alvos de toque de 44 × 44 px e inputs de pelo menos 16 px. Capturas de celular e desktop foram inspecionadas.
+- Edição com `editar=1` e aviso com `cancelado=1` funcionam offline; o Service Worker normaliza esses parâmetros somente para consultar o documento no cache, preservando a URL. Os testes completos de recuperação, importação, backup e atualização de cache continuam aprovados.
+- Esquema do banco e dos backups permanece v2. Nenhuma migração adicional ou alteração de dados existentes é necessária. Validação em aparelhos físicos permanece pendente abaixo.
+
 ## Aparelhos reais — pendente
 
 É necessário executar os itens abaixo em um Android/Chrome e em um iPhone/Safari, usando o domínio HTTPS definitivo. Testes com Playwright não substituem estes itens. Anote aparelho, versão do sistema/navegador e data ao validar.
@@ -52,6 +62,9 @@ O gráfico de médias simples por sessão permanece registrado no `PLANO.md` com
 - [ ] Conferir repetições mínimas/máximas, duração em segundos e teclados inteiro/decimal. Verificar colagem de letras, ponto/vírgula e campos temporariamente vazios.
 - [ ] Conferir as telas em 320, 360, 390 e 430 px, modo horizontal, claro/escuro e com o teclado aberto. Confirmar que teclado, recortes e áreas seguras não encobrem campos ou ações.
 - [ ] Abrir/recolher cards, trocar de exercício e concluir todas as séries pendentes após confirmação. Conferir preservação das ignoradas, desfazer individual e bloqueios com cronômetro, pausa ou erro de gravação.
+- [ ] Abrir a próxima ficha pelo início sem criar sessão; conferir sequência por código e iniciar manualmente nos detalhes.
+- [ ] Conferir códigos, nomes e observações longos na lista, detalhes e editor de fichas no próprio aparelho.
+- [ ] Cancelar sessão ativa e pausada, conferir o aviso das séries concluídas e desistir da confirmação. Confirmar que o cancelamento não aparece no histórico nem avança a sequência.
 - [ ] Concluir/desfazer uma série, ignorar outra, adicionar/remover séries e inserir observações.
 - [ ] Fechar durante um treino e recuperar os valores ao reabrir. Verificar também outra aba do mesmo navegador.
 - [ ] Cronometrar, bloquear a tela ou trocar de app, retornar e conferir tempo; pausar e retomar.

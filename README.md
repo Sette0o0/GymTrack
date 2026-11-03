@@ -36,9 +36,15 @@ Não há login, backend ou sincronização. Dados pertencem à origem (protocolo
 
 ## Registrar um treino no celular
 
+Na página inicial, **Começar meu treino** abre a próxima ficha em ordem natural de código (A → B → C ou 1 → 2 → 10), considerando a sessão finalizada mais recentemente. Após a última, a sequência volta ao início; fichas arquivadas são ignoradas. Uma sessão pendente tem prioridade para retomada.
+
+Toque em uma ficha para consultar exercícios, metas e observações. A consulta não cria uma sessão: o registro começa somente pelo botão **Começar treino** dentro da ficha. Fichas vazias ou arquivadas não podem ser iniciadas.
+
 Todos os exercícios aparecem em cards na ordem da ficha, inicialmente recolhidos. Toque no card para abrir as séries; somente um fica aberto por vez. O resumo mostra a meta de repetições ou tempo e as quantidades concluídas, ignoradas e pendentes. Antes de recolher ou trocar, o aplicativo aguarda as gravações; campos inválidos ou falhas de armazenamento mantêm o card aberto.
 
 **Concluir todas** pede confirmação e conclui somente as séries pendentes do exercício com os valores gravados. Preserva séries ignoradas e já concluídas, inclusive seus horários. A ação fica bloqueada com treino pausado, cronômetro ativo no exercício, campo inválido ou gravação pendente. É possível desfazer cada série individualmente. Pausa, retomada e finalização do treino permanecem fora dos cards.
+
+**Cancelar treino** permite descartar uma sessão ativa ou pausada, mesmo com campos inválidos. A confirmação informa quantas séries concluídas serão perdidas. Os registros e observações dessa sessão são apagados definitivamente, sem contar no histórico ou avançar a sequência. A exclusão é atômica; em caso de falha, os dados são preservados para tentar novamente. Sessões já finalizadas não podem ser canceladas.
 
 Na ficha, informe repetições mínimas e máximas; para meta fixa, use o mesmo valor nos dois campos. Não há meta de kg. Nas séries, a carga aceita vírgula ou ponto decimal, sem separador de milhares. Séries, repetições e segundos exigem inteiros positivos; carga admite zero. É possível limpar um campo durante a edição, mas ele deve ser preenchido antes de salvar ou concluir. Letras, notação científica e colagens inválidas são recusadas sem extrair números nem corrigir o valor silenciosamente.
 

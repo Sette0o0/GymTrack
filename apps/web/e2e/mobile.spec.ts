@@ -17,6 +17,17 @@ async function layout(page: Page, context: string) {
       problems.push(
         `Página com ${document.documentElement.scrollWidth}px para viewport ${innerWidth}px`
       )
+    for (const element of document.querySelectorAll<HTMLElement>(
+      ".workout-summary, .workout-details, .exercise-editor, .form-actions"
+    )) {
+      if (
+        element.getBoundingClientRect().height &&
+        element.scrollWidth > element.clientWidth + 1
+      )
+        problems.push(
+          `Conteúdo excede o card: ${element.className} (${element.scrollWidth}/${element.clientWidth}px)`
+        )
+    }
     for (const panel of document.querySelectorAll<HTMLElement>(
       '[data-slot="accordion-content"]'
     )) {
@@ -86,6 +97,26 @@ test("telas sem overflow com alvos de toque, nomes completos, foco e temas nas l
     .getByRole("button", { name: "Salvar exercício", exact: true })
     .click()
   await page.goto("/treinos/")
+  await page.getByRole("link", { name: "Editar", exact: true }).click()
+  await page
+    .getByLabel("Código do treino", { exact: true })
+    .fill("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234")
+  await page
+    .getByLabel("Nome da ficha", { exact: true })
+    .fill(
+      "Treino completo de força e resistência com exercícios para membros superiores e estabilização do abdômen"
+    )
+  await page
+    .getByLabel("Descrição (opcional)", { exact: true })
+    .fill(
+      `Respeitar os limites e manter a postura. ${"OrientaçãoSemEspaços".repeat(6)}`
+    )
+  await page.getByRole("button", { name: "Salvar ficha", exact: true }).click()
+  await expect(
+    page.getByRole("heading", { name: "Exercícios do treino", exact: true })
+  ).toBeVisible()
+  const detailsUrl = page.url()
+  await page.goto("/treinos/")
   await start(page)
   await page
     .getByRole("button", { name: "Concluir série 1", exact: true })
@@ -112,6 +143,7 @@ test("telas sem overflow com alvos de toque, nomes completos, foco e temas nas l
   const screens = [
     "/",
     "/treinos/",
+    detailsUrl,
     "editor",
     "/exercicios/",
     sessionUrl,
@@ -162,6 +194,13 @@ test("telas sem overflow com alvos de toque, nomes completos, foco e temas nas l
         await openExercise(page, "Prancha")
       }
       await layout(page, `${width}px ${route}`)
+      if (route === "/treinos/" || route === detailsUrl || route === "editor")
+        await page.screenshot({
+          path: testInfo.outputPath(
+            `fichas-${screens.indexOf(route)}-${width}.png`
+          ),
+          fullPage: true,
+        })
     }
   }
   await page.setViewportSize({ width: 390, height: 844 })

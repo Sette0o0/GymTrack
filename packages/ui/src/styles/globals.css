@@ -211,7 +211,8 @@ button[data-slot="button"],
 .field small {
   font-size: 13px;
 }
-.page-container a[href]:not(.recent-row):not(.import-shortcut) {
+.page-container
+  a[href]:not(.recent-row):not(.import-shortcut):not(.workout-summary) {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -419,11 +420,17 @@ button[data-slot="button"],
   letter-spacing: -1.05px;
   margin: 9px 0 8px;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.page-heading > div {
+  min-width: 0;
 }
 .page-description {
   font-size: 12px;
   color: var(--muted-foreground);
   line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 .button-link {
   display: inline-flex;
@@ -492,6 +499,7 @@ button[data-slot="button"],
   font-size: 11px;
   line-height: 1.9;
   color: #bdcbbd;
+  overflow-wrap: anywhere;
 }
 .hero-button {
   display: inline-flex;
@@ -649,6 +657,49 @@ button[data-slot="button"],
   grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
   gap: 15px;
 }
+.workout-grid > * {
+  min-width: 0;
+}
+.workout-grid.workout-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+.workout-list-card {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+.workout-list-card .form-actions {
+  margin-top: auto;
+  padding-top: 20px;
+}
+.workout-list-card .form-actions > *,
+.workout-details .form-actions > * {
+  flex: 1 1 130px;
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: 44px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.4;
+}
+.workout-list-card .subtle {
+  margin-block: 10px;
+}
+.workout-list-card .text-link {
+  min-height: 44px;
+}
+.workout-details h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.workout-list-card p,
+.workout-details p {
+  overflow-wrap: anywhere;
+}
+.workout-card [data-slot="card-content"] {
+  min-width: 0;
+}
 .page-container a.workout-summary {
   display: block;
   min-width: 0;
@@ -701,15 +752,17 @@ button[data-slot="button"],
   border-radius: 5px;
 }
 .workout-letter {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 43px;
-  padding: 4px;
+  display: block;
+  text-align: center;
+  width: fit-content;
+  min-width: 42px;
+  max-width: 100%;
+  min-height: 43px;
+  padding: 8px;
   font-size: 20px;
   font-weight: 600;
   border-radius: 10px;
-  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 .tone-0 {
   color: #4e7952;

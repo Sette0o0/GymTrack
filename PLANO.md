@@ -259,6 +259,10 @@ Exemplo visual da tela inicial.
 
 Funcionalidades: visualizar os treinos cadastrados, iniciar um treino, retomar uma sessão incompleta, acessar o histórico e gerenciar as fichas.
 
+**Navegação implementada em 03/11/2026:** “Começar meu treino” abre os detalhes da próxima ficha ativa, em ordem natural de código (A/B/C ou 1/2/10), após a sessão com finalização mais recente. O ciclo volta à primeira ficha ao terminar; sem histórico, começa pela primeira. Se a última ficha foi arquivada ou removida, seu código histórico determina a próxima. Sessões pendentes têm prioridade para retomada.
+
+Os cards abrem `/treinos/?id=…` para consulta de exercícios, séries, metas e observações. A sessão só é criada no botão “Começar treino” dessa visualização. A edição usa `/treinos/?id=…&editar=1`; consultas não criam sessões. Fichas vazias ou arquivadas não podem iniciar treinos. Lista e início seguem a mesma ordenação por código.
+
 ### Tela 2 — Executar treino
 
 Esta será a tela central do aplicativo.
@@ -274,6 +278,7 @@ Ela deverá permitir:
 - Registrar observações da sessão.
 - Abrir um card por vez na própria página, aguardando gravações antes de recolher ou trocar. Campos inválidos ou falhas mantêm o exercício aberto.
 - Finalizar, pausar ou retomar o treino.
+- Cancelar uma sessão ativa ou pausada após confirmação destrutiva que informa as séries concluídas a perder. Excluir sessão, exercícios e séries em transação única, sem alterar fichas ou sessões anteriores, sem contar nas estatísticas nem avançar a sequência. Aguardar gravações em andamento; permitir descarte de campos inválidos e limpar apenas pendências da sessão após sucesso. Recusar cancelamento de sessão finalizada por outra aba. Em falha, preservar os registros e permitir nova tentativa.
 
 Comportamento fundamental: ao iniciar um treino, o aplicativo sugere as cargas, repetições e durações da última sessão concluída. Sem histórico, a carga começa em zero e repetições/duração usam a meta. Séries adicionadas copiam os valores da última série existente.
 

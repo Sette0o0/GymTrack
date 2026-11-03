@@ -164,7 +164,7 @@ export function WorkoutsScreen() {
           Escolha seus exercícios e defina as metas de cada treino.
         </EmptyState>
       ) : (
-        <div className="workout-grid">
+        <div className="workout-grid workout-list">
           {sortWorkouts(
             data.workoutTemplates.filter((row) => row.archived === showArchived)
           ).map((template, index) => (
