@@ -67,7 +67,10 @@ export async function openExercise(page: Page, name: string) {
   await expect(card).toHaveAttribute("aria-expanded", "true")
 }
 export async function start(page: Page, openFirst = true) {
-  await page.getByRole("button", { name: "Iniciar", exact: true }).click()
+  await page.locator(".workout-summary").first().click()
+  await page
+    .getByRole("button", { name: "Começar treino", exact: true })
+    .click()
   await expect(page).toHaveURL(/executar\/\?id=/)
   await expect(
     page.locator('[data-slot="accordion-trigger"][aria-expanded="true"]')

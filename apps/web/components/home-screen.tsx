@@ -13,18 +13,20 @@ import {
   ShieldCheck,
   Timer,
 } from "lucide-react"
-import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import { useApp } from "./app-shell"
 import { EmptyState, formatDate, PageHeading, TextLink } from "./ui-helpers"
-import { startSession } from "@/services/sessions"
+import { nextWorkout, sortWorkouts } from "@/lib/workout-navigation"
 import { localDate } from "@/lib/schema"
 
 export function HomeScreen() {
-  const { data, run, busy } = useApp()
+  const { data } = useApp()
   if (!data) return null
-  const templates = data.workoutTemplates.filter((row) => !row.archived)
+  const templates = sortWorkouts(
+    data.workoutTemplates.filter((row) => !row.archived)
+  )
+  const next = nextWorkout(templates, data.workoutSessions)
   const completed = data.workoutSessions.filter(
     (row) => row.status === "completed"
   )
@@ -43,10 +45,6 @@ export function HomeScreen() {
     day: "numeric",
     month: "long",
   })
-  async function start(id: string) {
-    const sessionId = await run(() => startSession(id))
-    if (sessionId) window.location.assign(`/executar/?id=${sessionId}`)
-  }
   return (
     <>
       <PageHeading
@@ -83,13 +81,17 @@ export function HomeScreen() {
               Retomar treino <ArrowRight size={18} />
             </a>
           ) : templates.length ? (
-            <Button
-              className="hero-button"
-              disabled={busy}
-              onClick={() => start(templates[0]!.id)}
-            >
-              Começar meu treino <ArrowRight size={18} />
-            </Button>
+            <>
+              <p className="next-workout">
+                Próximo treino:{" "}
+                <strong>
+                  {next!.code} · {next!.name}
+                </strong>
+              </p>
+              <a className="hero-button" href={`/treinos/?id=${next!.id}`}>
+                Começar meu treino <ArrowRight size={18} />
+              </a>
+            </>
           ) : (
             <a className="hero-button" href="/treinos/?novo=1">
               Criar minha primeira ficha <ArrowRight size={18} />
@@ -175,40 +177,40 @@ export function HomeScreen() {
                 return (
                   <Card className="workout-card" key={template.id}>
                     <CardContent>
-                      <div className="flex items-start justify-between">
-                        <span className={`workout-letter tone-${index % 3}`}>
-                          {template.code}
-                        </span>
-                        <Badge variant="secondary">
-                          {exercises.length} exercícios
-                        </Badge>
-                      </div>
-                      <h3>{template.name}</h3>
-                      <p className="exercise-preview">
-                        {exercises
-                          .slice(0, 3)
-                          .map(
-                            (exercise) =>
-                              data.exerciseDefinitions.find(
-                                (row) => row.id === exercise.exerciseId
-                              )?.name
-                          )
-                          .join(" · ") || "Adicione seus exercícios"}
-                      </p>
-                      <div className="workout-last">
-                        <Clock3 size={14} />
-                        {last
-                          ? `Último treino: ${formatDate(last.startedAt)}`
-                          : "Pronto para a primeira sessão"}
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-between"
-                        disabled={busy || !!pending}
-                        onClick={() => start(template.id)}
+                      <a
+                        className="workout-summary"
+                        href={`/treinos/?id=${template.id}`}
                       >
-                        Iniciar treino <ArrowRight size={17} />
-                      </Button>
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <span className={`workout-letter tone-${index % 3}`}>
+                            {template.code}
+                          </span>
+                          <Badge variant="secondary">
+                            {exercises.length} exercícios
+                          </Badge>
+                        </div>
+                        <h3>{template.name}</h3>
+                        <p className="exercise-preview">
+                          {exercises
+                            .slice(0, 3)
+                            .map(
+                              (exercise) =>
+                                data.exerciseDefinitions.find(
+                                  (row) => row.id === exercise.exerciseId
+                                )?.name
+                            )
+                            .join(" · ") || "Adicione seus exercícios"}
+                        </p>
+                        <div className="workout-last">
+                          <Clock3 size={14} />
+                          {last
+                            ? `Último treino: ${formatDate(last.startedAt)}`
+                            : "Pronto para a primeira sessão"}
+                        </div>
+                        <span className="text-link">
+                          Ver treino <ArrowRight size={17} />
+                        </span>
+                      </a>
                     </CardContent>
                   </Card>
                 )

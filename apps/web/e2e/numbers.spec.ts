@@ -40,7 +40,10 @@ test("campos numéricos recusam letras, validam intervalos e preservam decimais 
   ).toBeVisible()
   await max.fill("15")
   await page.getByRole("button", { name: "Salvar ficha", exact: true }).click()
-  await page.getByRole("button", { name: "Iniciar", exact: true }).click()
+  await page.locator(".workout-summary").first().click()
+  await page
+    .getByRole("button", { name: "Começar treino", exact: true })
+    .click()
   await openExercise(page, "Agachamento com halteres")
   const weight = page.getByLabel("Carga da série 1 (kg)", { exact: true })
   const reps = page.getByLabel("Repetições da série 1", { exact: true })

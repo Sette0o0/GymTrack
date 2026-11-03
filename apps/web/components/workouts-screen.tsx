@@ -35,6 +35,7 @@ import {
   saveWorkout,
 } from "@/services/workouts"
 import { startSession } from "@/services/sessions"
+import { sortWorkouts } from "@/lib/workout-navigation"
 import {
   definitionSchema,
   duration as formatDuration,
@@ -63,10 +64,13 @@ export function WorkoutsScreen() {
   const { data, run, busy } = useApp()
   const [editing, setEditing] = useState<WorkoutTemplate | null>(() =>
     data
-      ? (data.workoutTemplates.find((row) => row.id === param("id")) ??
+      ? ((param("editar")
+          ? data.workoutTemplates.find((row) => row.id === param("id"))
+          : null) ??
         (param("novo") ? emptyWorkout(data.workoutTemplates.length) : null))
       : null
   )
+  const [requestedId] = useState(() => param("id"))
   const [showArchived, setShowArchived] = useState(false)
   if (!data) return null
   const pending = data.workoutSessions.find((row) => row.status !== "completed")
@@ -77,10 +81,27 @@ export function WorkoutsScreen() {
         template={editing}
         onClose={() => {
           setEditing(null)
-          window.history.replaceState(null, "", "/treinos/")
+          window.history.replaceState(
+            null,
+            "",
+            requestedId ? `/treinos/?id=${requestedId}` : "/treinos/"
+          )
         }}
       />
     )
+  if (requestedId) {
+    const template = data.workoutTemplates.find((row) => row.id === requestedId)
+    return template ? (
+      <WorkoutDetails template={template} />
+    ) : (
+      <EmptyState
+        title="Ficha não encontrada"
+        action={<TextLink href="/treinos/">Ver fichas</TextLink>}
+      >
+        Esta ficha não está disponível neste dispositivo.
+      </EmptyState>
+    )
+  }
   return (
     <>
       <PageHeading
@@ -144,10 +165,14 @@ export function WorkoutsScreen() {
         </EmptyState>
       ) : (
         <div className="workout-grid">
-          {data.workoutTemplates
-            .filter((row) => row.archived === showArchived)
-            .map((template, index) => (
-              <div className="panel" key={template.id}>
+          {sortWorkouts(
+            data.workoutTemplates.filter((row) => row.archived === showArchived)
+          ).map((template, index) => (
+            <div className="panel workout-list-card" key={template.id}>
+              <a
+                className="workout-summary"
+                href={`/treinos/?id=${template.id}`}
+              >
                 <span className={`workout-letter tone-${index % 3}`}>
                   {template.code}
                 </span>
@@ -156,47 +181,130 @@ export function WorkoutsScreen() {
                   {template.description ||
                     `${data.templateExercises.filter((row) => row.templateId === template.id).length} exercícios na ficha`}
                 </p>
-                <div className="form-actions">
-                  <Button
-                    variant="outline"
-                    onClick={() => setEditing(template)}
-                  >
-                    <Pencil size={15} />
-                    Editar
-                  </Button>
-                  {!template.archived && (
-                    <Button
-                      disabled={busy || !!pending}
-                      onClick={async () => {
-                        const id = await run(() => startSession(template.id))
-                        if (id) window.location.assign(`/executar/?id=${id}`)
-                      }}
-                    >
-                      <Play size={15} />
-                      Iniciar
-                    </Button>
-                  )}
-                  <ConfirmAction
-                    label={
-                      <>
-                        <Archive size={15} />
-                        {template.archived ? "Restaurar" : "Arquivar"}
-                      </>
-                    }
-                    title={
-                      template.archived ? "Restaurar ficha?" : "Arquivar ficha?"
-                    }
-                    description="Seus treinos já realizados e o histórico permanecem preservados."
-                    disabled={busy}
-                    onConfirm={() =>
-                      run(() => archiveWorkout(template.id, !template.archived))
-                    }
-                  />
-                </div>
+                <span className="text-link">
+                  Ver treino <ArrowUpRight size={16} />
+                </span>
+              </a>
+              <div className="form-actions">
+                <a
+                  className="button-link secondary"
+                  href={`/treinos/?id=${template.id}&editar=1`}
+                >
+                  <Pencil size={15} /> Editar
+                </a>
+                <ConfirmAction
+                  label={
+                    <>
+                      <Archive size={15} />
+                      {template.archived ? "Restaurar" : "Arquivar"}
+                    </>
+                  }
+                  title={
+                    template.archived ? "Restaurar ficha?" : "Arquivar ficha?"
+                  }
+                  description="Seus treinos já realizados e o histórico permanecem preservados."
+                  disabled={busy}
+                  onConfirm={() =>
+                    run(() => archiveWorkout(template.id, !template.archived))
+                  }
+                />
               </div>
-            ))}
+            </div>
+          ))}
         </div>
       )}
+    </>
+  )
+}
+
+function WorkoutDetails({ template }: { template: WorkoutTemplate }) {
+  const { data, run, busy } = useApp()
+  if (!data) return null
+  const pending = data.workoutSessions.find((row) => row.status !== "completed")
+  const exercises = data.templateExercises
+    .filter((row) => row.templateId === template.id)
+    .sort((a, b) => a.order - b.order)
+  return (
+    <>
+      <PageHeading
+        eyebrow="CONHEÇA SEU TREINO"
+        title={`${template.code} · ${template.name}`}
+        description={
+          template.description || `${exercises.length} exercícios nesta ficha.`
+        }
+        action={<TextLink href="/treinos/">Todas as fichas</TextLink>}
+      />
+      <section className="panel workout-details">
+        <h2>Exercícios do treino</h2>
+        {exercises.map((exercise, index) => {
+          const definition = data.exerciseDefinitions.find(
+            (row) => row.id === exercise.exerciseId
+          )
+          return (
+            <article className="workout-detail-exercise" key={exercise.id}>
+              <span className="order-number">{index + 1}</span>
+              <div>
+                <h3>{definition?.name ?? "Exercício indisponível"}</h3>
+                <p className="subtle">
+                  {targetLabel(exercise)}
+                  {exercise.type === "time"
+                    ? ` · ${formatDuration(exercise.targetSeconds)}`
+                    : ""}
+                </p>
+                {[definition?.notes, exercise.notes]
+                  .filter(Boolean)
+                  .map((note, i) => (
+                    <p className="workout-note" key={i}>
+                      {note}
+                    </p>
+                  ))}
+              </div>
+            </article>
+          )
+        })}
+        {!exercises.length && (
+          <p className="subtle">
+            Adicione exercícios à ficha antes de começar.
+          </p>
+        )}
+        {template.archived && (
+          <p className="subtle">
+            Esta ficha está arquivada. Restaure-a na lista de fichas para
+            começar.
+          </p>
+        )}
+        {pending && (
+          <p className="success-banner">
+            Há um treino pendente. Retome, finalize ou cancele antes de começar
+            outro.
+          </p>
+        )}
+        <div className="form-actions">
+          {pending ? (
+            <a className="button-link" href={`/executar/?id=${pending.id}`}>
+              Retomar treino
+            </a>
+          ) : (
+            <Button
+              disabled={busy || template.archived || !exercises.length}
+              onClick={async () => {
+                const id = await run(() => startSession(template.id))
+                if (id) window.location.assign(`/executar/?id=${id}`)
+              }}
+            >
+              <Play size={16} />
+              Começar treino
+            </Button>
+          )}
+          <a
+            className="button-link secondary"
+            href={`/treinos/?id=${template.id}&editar=1`}
+          >
+            <Pencil size={16} />
+            Editar ficha
+          </a>
+        </div>
+      </section>
     </>
   )
 }

@@ -649,6 +649,37 @@ button[data-slot="button"],
   grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
   gap: 15px;
 }
+.page-container a.workout-summary {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+}
+.workout-summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 5px;
+}
+.workout-detail-exercise {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-block: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.workout-detail-exercise > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.workout-detail-exercise .order-number {
+  flex-shrink: 0;
+}
+.workout-note {
+  white-space: pre-wrap;
+  margin-top: 8px;
+}
+.next-workout strong {
+  overflow-wrap: anywhere;
+}
 .workout-card {
   box-shadow: none;
   border: 1px solid var(--border);

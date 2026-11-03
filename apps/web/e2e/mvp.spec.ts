@@ -79,9 +79,13 @@ test("ficha, séries, recuperação, histórico e backup funcionam totalmente of
   ).toBeVisible()
   const other = await context.newPage()
   await other.goto("/treinos/")
+  await other.locator(".workout-summary").first().click()
   await expect(
-    other.getByRole("button", { name: "Iniciar", exact: true })
-  ).toBeDisabled()
+    other.getByRole("button", { name: "Começar treino", exact: true })
+  ).toHaveCount(0)
+  await expect(
+    other.getByRole("link", { name: "Retomar treino", exact: true })
+  ).toBeVisible()
   await other.close()
   await page
     .getByRole("button", { name: "Retomar treino", exact: true })
@@ -110,7 +114,7 @@ test("ficha, séries, recuperação, histórico e backup funcionam totalmente of
   const historyUrl = page.url()
   // Editing and removing template exercises must not rewrite the session.
   await page.goto("/treinos/")
-  await page.getByRole("button", { name: "Editar", exact: true }).click()
+  await page.getByRole("link", { name: "Editar", exact: true }).click()
   await page.getByLabel("Nome da ficha", { exact: true }).fill("Ficha alterada")
   await page
     .getByRole("button", { name: "Remover exercício 1", exact: true })
@@ -272,7 +276,10 @@ test("Excel com múltiplas abas, exclusão de erro e exportação CSV offline", 
   await page
     .locator(".panel")
     .filter({ has: page.getByRole("heading", { name: "Sábado", exact: true }) })
-    .getByRole("button", { name: "Iniciar", exact: true })
+    .locator(".workout-summary")
+    .click()
+  await page
+    .getByRole("button", { name: "Começar treino", exact: true })
     .click()
   await openExercise(page, "Prancha")
   await expect(

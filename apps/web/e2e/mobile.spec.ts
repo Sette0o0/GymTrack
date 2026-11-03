@@ -135,7 +135,7 @@ test("telas sem overflow com alvos de toque, nomes completos, foco e temas nas l
         page.getByText("Dados salvos neste dispositivo", { exact: true })
       ).toBeVisible()
       if (route === "editor")
-        await page.getByRole("button", { name: "Editar", exact: true }).click()
+        await page.getByRole("link", { name: "Editar", exact: true }).click()
       if (route === "/importar/") {
         await page
           .getByLabel("Planilha Excel (.xlsx)", { exact: true })
@@ -195,7 +195,7 @@ test("telas sem overflow com alvos de toque, nomes completos, foco e temas nas l
   for (const route of screens) {
     await page.goto(route === "editor" ? "/treinos/" : route)
     if (route === "editor")
-      await page.getByRole("button", { name: "Editar", exact: true }).click()
+      await page.getByRole("link", { name: "Editar", exact: true }).click()
     if (route === sessionUrl) await openExercise(page, "Supino reto")
     if (route === "/importar/") {
       await page
