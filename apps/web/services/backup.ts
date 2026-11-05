@@ -159,14 +159,14 @@ export function csvCell(input: unknown) {
     typeof input === "number"
       ? String(input).replace(".", ",")
       : String(input ?? "")
-  if (/^\s*[=+@-]/.test(value)) value = "'" + value
+  if (/^\s*[=+@-]/.test(value) || value.startsWith("'")) value = "'" + value
   return `"${value.replaceAll('"', '""')}"`
 }
 export function csv(rows: unknown[][]) {
   return "\ufeff" + rows.map((row) => row.map(csvCell).join(";")).join("\r\n")
 }
 export function templatesCsv(data: Backup) {
-  return csv([
+  const rows: unknown[][] = [
     [
       "Treino",
       "Nome da ficha",
@@ -177,35 +177,57 @@ export function templatesCsv(data: Backup) {
       "Segundos",
       "Observações",
       "Agrupamento muscular",
+      "Ficha ID",
+      "Exercício ID",
+      "Item da ficha ID",
+      "Ordem exercício",
+      "Descrição da ficha",
+      "Ficha arquivada",
+      "Observação catálogo",
+      "Exercício arquivado",
+      "Versão CSV",
+      "Registro CSV",
     ],
-    ...data.workoutTemplates
-      .flatMap((template) =>
-        [...data.templateExercises]
-          .filter((row) => row.templateId === template.id)
-          .sort((a, b) => a.order - b.order)
+  ]
+  for (const template of data.workoutTemplates) {
+    const exercises = data.templateExercises
+      .filter((row) => row.templateId === template.id)
+      .sort((a, b) => a.order - b.order)
+    for (const exercise of exercises.length ? exercises : [null]) {
+      const definition = data.exerciseDefinitions.find(
+        (row) => row.id === exercise?.exerciseId
       )
-      .map((row) => {
-        const template = data.workoutTemplates.find(
-          (item) => item.id === row.templateId
-        )
-        return [
-          template?.code,
-          template?.name,
-          data.exerciseDefinitions.find((item) => item.id === row.exerciseId)
-            ?.name,
-          row.type === "time" ? "Tempo" : "Peso e repetições",
-          row.targetSets,
-          row.type === "weight_reps" ? row.targetReps : "",
-          row.type === "time" ? row.targetSeconds : "",
-          row.notes,
-          data.exerciseDefinitions.find((item) => item.id === row.exerciseId)
-            ?.muscleGroup ?? "",
-        ]
-      }),
-  ])
+      rows.push([
+        template.code,
+        template.name,
+        definition?.name ?? "",
+        exercise
+          ? exercise.type === "time"
+            ? "Tempo"
+            : "Peso e repetições"
+          : "",
+        exercise?.targetSets ?? "",
+        exercise?.type === "weight_reps" ? exercise.targetReps : "",
+        exercise?.type === "time" ? exercise.targetSeconds : "",
+        exercise?.notes ?? "",
+        definition?.muscleGroup ?? "",
+        template.id,
+        definition?.id ?? "",
+        exercise?.id ?? "",
+        exercise?.order ?? "",
+        template.description,
+        template.archived ? "sim" : "não",
+        definition?.notes ?? "",
+        definition?.archived ? "sim" : "não",
+        1,
+        exercise ? "exercício" : "ficha",
+      ])
+    }
+  }
+  return csv(rows)
 }
 export function historyCsv(data: Backup) {
-  return csv([
+  const rows: unknown[][] = [
     [
       "Sessão ID",
       "Data local",
@@ -228,39 +250,74 @@ export function historyCsv(data: Backup) {
       "Observação exercício",
       "Observação sessão",
       "Agrupamento muscular",
+      "Ficha ID",
+      "Exercício ID",
+      "Exercício da sessão ID",
+      "Série ID",
+      "Ordem exercício",
+      "Série concluída em",
+      "Versão CSV",
+      "Registro CSV",
     ],
-    ...data.setRecords.map((row) => {
-      const exercise = data.sessionExercises.find(
-        (item) => item.id === row.sessionExerciseId
-      )!
-      const session = data.workoutSessions.find(
-        (item) => item.id === exercise.sessionId
-      )!
-      return [
-        session.id,
-        session.localDate,
-        new Date(session.startedAt).toISOString(),
-        session.finishedAt ? new Date(session.finishedAt).toISOString() : "",
-        session.workoutCode,
-        session.workoutName,
-        exercise.nameSnapshot,
-        row.type,
-        row.setNumber,
-        row.type === "weight_reps" ? row.weightKg : "",
-        row.type === "weight_reps" ? row.repetitions : "",
-        row.type === "time" ? row.durationSeconds : "",
-        row.status,
-        session.status,
-        exercise.targetSets,
-        exercise.type === "weight_reps" ? exercise.targetReps : "",
-        exercise.type === "time" ? exercise.targetSeconds : "",
-        exercise.notesSnapshot,
-        exercise.sessionNotes,
-        session.notes,
-        exercise.muscleGroupSnapshot ?? "",
-      ]
-    }),
-  ])
+  ]
+  const now = Date.now()
+  for (const session of data.workoutSessions) {
+    const exercises = data.sessionExercises
+      .filter((row) => row.sessionId === session.id)
+      .sort((a, b) => a.order - b.order)
+    for (const exercise of exercises.length ? exercises : [null]) {
+      const sets = data.setRecords
+        .filter((row) => row.sessionExerciseId === exercise?.id)
+        .sort((a, b) => a.setNumber - b.setNumber)
+      for (const set of sets.length ? sets : [null]) {
+        const seconds =
+          set?.type === "time"
+            ? set.timerStartedAt === null
+              ? set.durationSeconds
+              : Math.min(
+                  86400,
+                  Math.max(1, Math.floor((now - set.timerStartedAt) / 1000))
+                )
+            : ""
+        rows.push([
+          session.id,
+          session.localDate,
+          new Date(session.startedAt).toISOString(),
+          session.finishedAt === null
+            ? ""
+            : new Date(session.finishedAt).toISOString(),
+          session.workoutCode,
+          session.workoutName,
+          exercise?.nameSnapshot ?? "",
+          exercise?.type ?? "",
+          set?.setNumber ?? "",
+          set?.type === "weight_reps" ? set.weightKg : "",
+          set?.type === "weight_reps" ? set.repetitions : "",
+          seconds,
+          set?.status ?? "",
+          session.status,
+          exercise?.targetSets ?? "",
+          exercise?.type === "weight_reps" ? exercise.targetReps : "",
+          exercise?.type === "time" ? exercise.targetSeconds : "",
+          exercise?.notesSnapshot ?? "",
+          exercise?.sessionNotes ?? "",
+          session.notes,
+          exercise?.muscleGroupSnapshot ?? "",
+          session.templateId,
+          exercise?.exerciseId ?? "",
+          exercise?.id ?? "",
+          set?.id ?? "",
+          exercise?.order ?? "",
+          set?.completedAt == null
+            ? ""
+            : new Date(set.completedAt).toISOString(),
+          1,
+          set ? "série" : exercise ? "exercício" : "sessão",
+        ])
+      }
+    }
+  }
+  return csv(rows)
 }
 export function downloadFile(name: string, content: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }))

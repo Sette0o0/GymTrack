@@ -742,6 +742,21 @@ button[data-slot="button"],
   font-size: 12px;
   line-height: 1.5;
 }
+.csv-import {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.csv-preview-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.csv-preview-list span {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
 .next-workout strong {
   overflow-wrap: anywhere;
 }

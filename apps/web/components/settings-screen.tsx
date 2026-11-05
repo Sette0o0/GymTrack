@@ -29,6 +29,7 @@ import {
 } from "@/services/backup"
 import { snapshot } from "@/db/repository"
 import { errorMessage, type Backup } from "@/lib/schema"
+import { CsvImport } from "./csv-import"
 
 type InstallEvent = Event & {
   prompt: () => Promise<void>
@@ -309,6 +310,8 @@ export function SettingsScreen() {
           </div>
         )}
       </section>
+      <CsvImport kind="templates" />
+      <CsvImport kind="history" />
       <section className="panel">
         <h2 className="flex items-center gap-2">
           <HardDrive size={20} />
