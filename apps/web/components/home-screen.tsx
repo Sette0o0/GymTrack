@@ -19,6 +19,8 @@ import { Badge } from "@workspace/ui/components/badge"
 import { useApp } from "./app-shell"
 import { EmptyState, formatDate, PageHeading, TextLink } from "./ui-helpers"
 import { nextWorkout, sortWorkouts } from "@/lib/workout-navigation"
+import { MuscleGroups } from "./muscle-groups"
+import { templateMuscleGroups } from "@/lib/muscle-groups"
 import { localDate } from "@/lib/schema"
 
 export function HomeScreen() {
@@ -201,6 +203,9 @@ export function HomeScreen() {
                           </Badge>
                         </div>
                         <h3>{template.name}</h3>
+                        <MuscleGroups
+                          values={templateMuscleGroups(data, template.id)}
+                        />
                         <p className="exercise-preview">
                           {exercises
                             .slice(0, 3)

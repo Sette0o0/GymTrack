@@ -4,7 +4,7 @@ import type { Backup } from "@/lib/schema"
 export async function snapshot(database: GymDatabase = db): Promise<Backup> {
   return database.transaction("r", database.tables, async () => ({
     format: "gymtrack-backup",
-    schemaVersion: 2,
+    schemaVersion: 3,
     exportedAt: Date.now(),
     exerciseDefinitions: await database.exerciseDefinitions.toArray(),
     workoutTemplates: await database.workoutTemplates

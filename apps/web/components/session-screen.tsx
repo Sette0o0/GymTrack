@@ -30,6 +30,7 @@ import {
   PageHeading,
   TextLink,
 } from "./ui-helpers"
+import { MuscleGroups } from "./muscle-groups"
 import { targetLabel } from "./workouts-screen"
 import {
   addSet,
@@ -132,6 +133,7 @@ export function SessionScreen() {
         }
         action={<TextLink href="/">Voltar ao início</TextLink>}
       />
+      <MuscleGroups values={exercises.map((row) => row.muscleGroupSnapshot)} />
       <div className="session-progress">
         <p>
           <span>
@@ -349,6 +351,7 @@ function ExerciseCard({
         </span>
       </AccordionTrigger>
       <AccordionContent className="exercise-card-content">
+        <MuscleGroups values={[exercise.muscleGroupSnapshot]} />
         {exercise.notesSnapshot && (
           <p className="fixed-note">{exercise.notesSnapshot}</p>
         )}

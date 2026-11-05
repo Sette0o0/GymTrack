@@ -571,7 +571,7 @@ describe("backup e CSV", () => {
       })),
     }
     const converted = validateBackup(legacy)
-    expect(converted.schemaVersion).toBe(2)
+    expect(converted.schemaVersion).toBe(3)
     expect(
       converted.templateExercises.every((row) => !("targetWeight" in row))
     ).toBe(true)
@@ -623,7 +623,7 @@ describe("backup e CSV", () => {
     databases.push(upgraded)
     await upgraded.open()
     const after = await snapshot(upgraded)
-    expect(upgraded.verno).toBe(2)
+    expect(upgraded.verno).toBe(3)
     expect(after.workoutSessions).toEqual(before.workoutSessions)
     expect(after.setRecords).toEqual(before.setRecords)
     expect(after.templateExercises).toEqual(before.templateExercises)
@@ -655,7 +655,7 @@ describe("backup e CSV", () => {
     database.close()
     const upgraded = new GymDatabase(name)
     upgraded
-      .version(3)
+      .version(database.verno + 1)
       .stores({ settings: "key" })
       .upgrade(async (transaction) => {
         await transaction

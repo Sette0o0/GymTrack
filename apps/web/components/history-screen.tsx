@@ -21,6 +21,7 @@ import {
   type SetRecord,
 } from "@/lib/schema"
 import { deleteSession } from "@/services/sessions"
+import { MuscleGroups } from "./muscle-groups"
 import { targetLabel } from "./workouts-screen"
 
 export function HistoryScreen() {
@@ -82,6 +83,9 @@ export function HistoryScreen() {
             </a>
           )}
         </div>
+        <MuscleGroups
+          values={exercises.map((row) => row.muscleGroupSnapshot)}
+        />
         {session.notes && (
           <section className="panel">
             <h2>Observação do treino</h2>
@@ -101,6 +105,7 @@ export function HistoryScreen() {
                 Ver evolução
               </TextLink>
             </div>
+            <MuscleGroups values={[exercise.muscleGroupSnapshot]} />
             {exercise.notesSnapshot && (
               <p className="fixed-note">{exercise.notesSnapshot}</p>
             )}

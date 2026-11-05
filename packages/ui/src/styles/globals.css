@@ -728,6 +728,20 @@ button[data-slot="button"],
   white-space: pre-wrap;
   margin-top: 8px;
 }
+.muscle-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 10px;
+  min-width: 0;
+}
+.muscle-groups [data-slot="badge"] {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+}
 .next-workout strong {
   overflow-wrap: anywhere;
 }

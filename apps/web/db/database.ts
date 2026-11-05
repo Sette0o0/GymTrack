@@ -50,6 +50,23 @@ export class GymDatabase extends Dexie {
             delete exercise.targetWeight
           })
       })
+    this.version(3)
+      .stores({})
+      .upgrade(async (transaction) => {
+        await transaction
+          .table("exerciseDefinitions")
+          .toCollection()
+          .modify((row) => {
+            row.muscleGroup ??= ""
+          })
+        await transaction
+          .table("sessionExercises")
+          .toCollection()
+          .modify((row) => {
+            // Old sessions have no reliable historical classification.
+            row.muscleGroupSnapshot ??= ""
+          })
+      })
   }
 }
 export const db = new GymDatabase()

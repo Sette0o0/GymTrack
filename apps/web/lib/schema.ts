@@ -27,6 +27,7 @@ export const definitionSchema = z.object({
   id,
   name: z.string().trim().min(1).max(200),
   defaultType: exerciseType,
+  muscleGroup: z.string().trim().max(200).optional(),
   notes: note,
   archived: z.boolean(),
   createdAt: timestamp,
@@ -70,6 +71,7 @@ export const sessionExerciseSchema = z.intersection(
     sessionId: id,
     exerciseId: id,
     nameSnapshot: z.string().min(1),
+    muscleGroupSnapshot: z.string().trim().max(200).optional(),
     order: z.number().int().nonnegative(),
     notesSnapshot: note,
     sessionNotes: note,
@@ -103,7 +105,7 @@ export const settingSchema = z.object({
 })
 export const backupSchema = z.object({
   format: z.literal("gymtrack-backup"),
-  schemaVersion: z.literal(2),
+  schemaVersion: z.literal(3),
   exportedAt: timestamp,
   exerciseDefinitions: z.array(definitionSchema),
   workoutTemplates: z.array(templateSchema),
@@ -158,6 +160,7 @@ export function errorMessage(error: unknown) {
       targetReps: "Repetições",
       targetSeconds: "Duração (segundos)",
       notes: "Observações",
+      muscleGroup: "Agrupamento muscular",
       weightKg: "Carga (kg)",
       repetitions: "Repetições",
       durationSeconds: "Duração (segundos)",

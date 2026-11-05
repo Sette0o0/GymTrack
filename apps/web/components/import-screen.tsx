@@ -302,6 +302,7 @@ export function ImportScreen() {
                     <th>Aba / linha</th>
                     <th>Ficha</th>
                     <th>Exercício</th>
+                    <th>Agrupamento muscular</th>
                     <th>Metas / validação</th>
                   </tr>
                 </thead>
@@ -337,6 +338,7 @@ export function ImportScreen() {
                       </td>
                       <td>{row.code}</td>
                       <td>{row.exercise || "—"}</td>
+                      <td>{row.muscleGroup || "—"}</td>
                       <td>
                         {row.errors.length ? (
                           <span className="sheet-errors">

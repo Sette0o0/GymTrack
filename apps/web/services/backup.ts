@@ -17,7 +17,8 @@ export function validateBackup(input: unknown): Backup {
     input !== null &&
     "schemaVersion" in input &&
     input.schemaVersion !== 1 &&
-    input.schemaVersion !== 2
+    input.schemaVersion !== 2 &&
+    input.schemaVersion !== 3
   )
     throw new Error(
       "Versão de backup incompatível. Atualize o aplicativo antes de restaurar."
@@ -27,8 +28,8 @@ export function validateBackup(input: unknown): Backup {
     typeof input === "object" &&
     input !== null &&
     "schemaVersion" in input &&
-    input.schemaVersion === 1
-      ? { ...input, schemaVersion: 2 }
+    (input.schemaVersion === 1 || input.schemaVersion === 2)
+      ? { ...input, schemaVersion: 3 }
       : input
   const backup = backupSchema.parse(normalized)
   for (const table of tables) {
@@ -175,6 +176,7 @@ export function templatesCsv(data: Backup) {
       "Repetições",
       "Segundos",
       "Observações",
+      "Agrupamento muscular",
     ],
     ...data.workoutTemplates
       .flatMap((template) =>
@@ -196,6 +198,8 @@ export function templatesCsv(data: Backup) {
           row.type === "weight_reps" ? row.targetReps : "",
           row.type === "time" ? row.targetSeconds : "",
           row.notes,
+          data.exerciseDefinitions.find((item) => item.id === row.exerciseId)
+            ?.muscleGroup ?? "",
         ]
       }),
   ])
@@ -223,6 +227,7 @@ export function historyCsv(data: Backup) {
       "Observação fixa",
       "Observação exercício",
       "Observação sessão",
+      "Agrupamento muscular",
     ],
     ...data.setRecords.map((row) => {
       const exercise = data.sessionExercises.find(
@@ -252,6 +257,7 @@ export function historyCsv(data: Backup) {
         exercise.notesSnapshot,
         exercise.sessionNotes,
         session.notes,
+        exercise.muscleGroupSnapshot ?? "",
       ]
     }),
   ])

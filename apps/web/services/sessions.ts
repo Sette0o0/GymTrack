@@ -57,6 +57,7 @@ export async function startSession(
         id: newId(),
         sessionId: session.id,
         nameSnapshot: definition.name,
+        muscleGroupSnapshot: definition.muscleGroup ?? "",
         notesSnapshot: [definition.notes, exercise.notes]
           .filter(Boolean)
           .join("\n"),

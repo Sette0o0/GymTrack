@@ -34,6 +34,8 @@ import {
   saveDefinition,
   saveWorkout,
 } from "@/services/workouts"
+import { MuscleGroups } from "./muscle-groups"
+import { templateMuscleGroups } from "@/lib/muscle-groups"
 import { startSession } from "@/services/sessions"
 import { sortWorkouts } from "@/lib/workout-navigation"
 import {
@@ -181,6 +183,9 @@ export function WorkoutsScreen() {
                   {template.description ||
                     `${data.templateExercises.filter((row) => row.templateId === template.id).length} exercícios na ficha`}
                 </p>
+                <MuscleGroups
+                  values={templateMuscleGroups(data, template.id)}
+                />
                 <span className="text-link">
                   Ver treino <ArrowUpRight size={16} />
                 </span>
@@ -235,6 +240,7 @@ function WorkoutDetails({ template }: { template: WorkoutTemplate }) {
         action={<TextLink href="/treinos/">Todas as fichas</TextLink>}
       />
       <section className="panel workout-details">
+        <MuscleGroups values={templateMuscleGroups(data, template.id)} />
         <h2>Exercícios do treino</h2>
         {exercises.map((exercise, index) => {
           const definition = data.exerciseDefinitions.find(
@@ -245,6 +251,7 @@ function WorkoutDetails({ template }: { template: WorkoutTemplate }) {
               <span className="order-number">{index + 1}</span>
               <div>
                 <h3>{definition?.name ?? "Exercício indisponível"}</h3>
+                <MuscleGroups values={[definition?.muscleGroup]} />
                 <p className="subtle">
                   {targetLabel(exercise)}
                   {exercise.type === "time"
@@ -722,6 +729,7 @@ export function DefinitionForm({
   const [name, setName] = useState(definition?.name ?? "")
   const [type, setType] = useState(definition?.defaultType ?? "weight_reps")
   const [notes, setNotes] = useState(definition?.notes ?? "")
+  const [muscleGroup, setMuscleGroup] = useState(definition?.muscleGroup ?? "")
   const [error, setError] = useState("")
   return (
     <form
@@ -733,6 +741,7 @@ export function DefinitionForm({
             id: definition?.id ?? newId(),
             name,
             defaultType: type,
+            muscleGroup,
             notes,
             archived: definition?.archived ?? false,
             createdAt: definition?.createdAt ?? Date.now(),
@@ -762,6 +771,20 @@ export function DefinitionForm({
               placeholder="Ex.: Supino reto"
               value={name}
               onChange={(event) => setName(event.target.value)}
+            />
+          )}
+        </Field>
+        <Field
+          label="Agrupamento muscular (opcional)"
+          hint="Ex.: Peito, tríceps. Separe grupos com vírgula."
+        >
+          {(id) => (
+            <Input
+              id={id}
+              maxLength={200}
+              value={muscleGroup}
+              placeholder="Ex.: Peito, tríceps"
+              onChange={(event) => setMuscleGroup(event.target.value)}
             />
           )}
         </Field>
@@ -872,6 +895,7 @@ export function ExercisesScreen() {
               </span>
               <div>
                 <h3>{row.name}</h3>
+                <MuscleGroups values={[row.muscleGroup]} />
                 <p>
                   {row.defaultType === "time" ? "Tempo" : "Peso + repetições"}
                   {row.notes ? ` · ${row.notes}` : ""}

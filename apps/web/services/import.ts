@@ -13,6 +13,7 @@ export const importFields = {
   code: "Código do treino",
   name: "Nome da ficha",
   exercise: "Exercício",
+  muscleGroup: "Agrupamento muscular",
   type: "Tipo",
   sets: "Séries",
   reps: "Repetições",
@@ -37,6 +38,7 @@ export type ImportRow = {
   code: string
   name: string
   exercise: string
+  muscleGroup?: string
   notes: string
   targets?: Targets
   durationHint?: string
@@ -96,6 +98,14 @@ export function guessMapping(headers: unknown[]): Mapping {
     code: ["treino", "codigo", "codigo do treino"],
     name: ["nome da ficha", "ficha", "grupo"],
     exercise: ["exercicio", "exercicios", "nome do exercicio"],
+    muscleGroup: [
+      "agrupamento muscular",
+      "grupo muscular",
+      "grupos musculares",
+      "agrupamentos musculares",
+      "musculo",
+      "musculos",
+    ],
     type: ["tipo", "medicao"],
     sets: ["series", "sets"],
     reps: ["repeticoes", "reps"],
@@ -135,6 +145,7 @@ export function previewImport(sheets: SheetInput[]): ImportRow[] {
           sheet.mapping.code === undefined ? sheet.sheet.trim() : read("code"),
         name: read("name"),
         exercise: read("exercise"),
+        muscleGroup: read("muscleGroup"),
         notes: read("notes"),
         errors: [],
         excluded: sheet.excluded.includes(index + 1),
@@ -145,6 +156,8 @@ export function previewImport(sheets: SheetInput[]): ImportRow[] {
         entry.errors.push("Nome da ficha: até 200 caracteres")
       if (!entry.exercise || entry.exercise.length > 200)
         entry.errors.push("Exercício: obrigatório, até 200 caracteres")
+      if ((entry.muscleGroup?.length ?? 0) > 200)
+        entry.errors.push("Agrupamento muscular: até 200 caracteres")
       const typeText = normalize(read("type"))
       const time =
         ["tempo", "time", "duracao"].includes(typeText) ||
@@ -277,6 +290,7 @@ export async function importRows(
               id: newId(),
               name: row.exercise,
               defaultType: targets.type,
+              muscleGroup: row.muscleGroup ?? "",
               notes: "",
               archived: false,
               createdAt: now,
@@ -284,6 +298,13 @@ export async function importRows(
             }
             definitions.push(definition)
             await database.exerciseDefinitions.add(definition)
+          } else if (
+            row.muscleGroup?.trim() &&
+            definition.muscleGroup !== row.muscleGroup.trim()
+          ) {
+            definition.muscleGroup = row.muscleGroup.trim()
+            definition.updatedAt = now
+            await database.exerciseDefinitions.put(definition)
           }
           const exercise: TemplateExercise = {
             ...targets,
