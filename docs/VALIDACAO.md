@@ -51,6 +51,19 @@ O gráfico de médias simples por sessão permanece registrado no `PLANO.md` com
 - Edição com `editar=1` e aviso com `cancelado=1` funcionam offline; o Service Worker normaliza esses parâmetros somente para consultar o documento no cache, preservando a URL. Os testes completos de recuperação, importação, backup e atualização de cache continuam aprovados.
 - Esquema do banco e dos backups permanece v2. Nenhuma migração adicional ou alteração de dados existentes é necessária. Validação em aparelhos físicos permanece pendente abaixo.
 
+### Agrupamentos musculares, CSV e esquema v3 — 05/11/2026
+
+- Lint, tipos e build estático aprovados. O precache contém 73 recursos, aproximadamente 1,55 MB.
+- **87 testes de dados aprovados**, incluindo importação de agrupamentos, união de grupos, snapshots históricos, compatibilidade JSON v1/v2 e migração real do IndexedDB v2 para v3 com sessão pendente, pesos e cronômetro preservados. A migração v1 → v3 também continua coberta.
+- Importação CSV testada com os dois formatos exportados nas configurações, novos e antigos: IDs, medidas, grupos, notas com aspas/ponto e vírgula/quebras de linha, ordem, horários, fichas vazias, sessões sem exercícios e exercícios sem séries. Histórico pode ser importado antes das fichas; a referência arquivada é preenchida posteriormente. Sessões em andamento chegam pausadas.
+- Reimportação preserva registros locais; chamadas concorrentes em conexões diferentes não duplicam sessões. CSV inválido, IDs conflitantes, séries repetidas ambíguas, versões futuras e falha de armazenamento impedem gravação parcial. Prévia é somente leitura; a confirmação revalida o arquivo contra os dados atuais dentro da transação.
+- Cargas decimais muito pequenas, incluindo `Number.MIN_VALUE`, são exportadas como decimais com vírgula e reimportadas sem perda ou arredondamento. O escape de textos de planilha é reversível nos novos CSVs; conteúdo de células permanece texto.
+- Suíte E2E completa: **45 testes aprovados**, 15 em Chromium desktop, 15 no perfil Android e 15 em WebKit com perfil iPhone. Inclui leitura XLSX de agrupamentos, exibição dos grupos na ficha/sessão/histórico, exportação e importação de CSV em outro contexto do navegador totalmente offline, recusa de arquivo inválido e seleção repetida do mesmo arquivo.
+- Após a correção de serialização dos decimais muito pequenos, o artefato final foi reconstruído e os **9 testes de arquivos** foram repetidos e aprovados nos três perfis.
+- A revisão mobile continua cobrindo lista, detalhes, editor, execução, histórico, importação e configurações em 320, 360, 390 e 430 px, horizontal 844 × 390 e desktop 1280 × 900, em claro/escuro. A prévia CSV também verifica ausência de overflow em 390 px nos três motores.
+- Conferência visual adicional em Chromium isolado e offline: prévias preenchidas dos CSVs de histórico e fichas em 320 e 430 px, além do card com agrupamentos em 320 px. Cinco capturas geradas em `apps/web/test-results`; sem overflow ou erros JavaScript. Foram inspecionadas as prévias e o card.
+- Documentação atualizada para esquema v3, leitura de backups v1/v2, importação CSV por mesclagem e limites dos CSVs antigos. Os itens de aparelhos físicos abaixo continuam pendentes.
+
 ## Aparelhos reais — pendente
 
 É necessário executar os itens abaixo em um Android/Chrome e em um iPhone/Safari, usando o domínio HTTPS definitivo. Testes com Playwright não substituem estes itens. Anote aparelho, versão do sistema/navegador e data ao validar.
@@ -71,9 +84,11 @@ O gráfico de médias simples por sessão permanece registrado no `PLANO.md` com
 - [ ] Finalizar com série pendente e conferir que ela aparece como ignorada no histórico.
 - [ ] Alterar/arquivar a ficha e um exercício sem mudar o histórico anterior.
 - [ ] Importar um XLSX local com duas abas, corrigir/desmarcar uma linha inválida e conferir a prévia antes de confirmar.
+- [ ] Mapear agrupamento muscular no Excel e conferir todos os grupos na ficha, execução e histórico. Editar o catálogo e verificar preservação da classificação das sessões anteriores.
 - [ ] Baixar JSON e os dois CSVs. Abrir os CSVs no Excel em português e conferir acentos e decimais.
+- [ ] Importar os CSVs de fichas e histórico nas configurações, offline, em outro aparelho. Conferir grupos, notas, cargas, séries e horários; reimportar o histórico e verificar que não duplica registros.
 - [ ] Copiar o JSON para outro navegador/dispositivo e restaurar; conferir fichas, histórico, séries e observações.
-- [ ] Restaurar um JSON v1 em uma instalação v2 e conferir que apenas as metas antigas de kg foram removidas, preservando as cargas reais e a recuperação da sessão.
+- [ ] Restaurar JSONs v1/v2 em uma instalação v3 e conferir preservação das cargas reais e da sessão pendente. Registros antigos sem classificação devem continuar sem grupo.
 - [ ] Solicitar persistência e conferir a resposta do navegador; confirmar que o app funciona se a solicitação não for concedida.
 - [ ] Publicar nova revisão na mesma origem durante um treino. Confirmar que o botão de atualização permanece bloqueado até encerrar.
 - [ ] Atualizar após encerrar, reabrir offline e conferir que os registros permanecem.

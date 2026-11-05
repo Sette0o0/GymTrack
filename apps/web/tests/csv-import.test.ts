@@ -389,3 +389,18 @@ it("CSV versionado não aceita perder IDs ou horários nem referências conflita
   ).rejects.toThrow("conflitantes")
   expect(await target.workoutSessions.count()).toBe(0)
 })
+
+it("preserva cargas muito pequenas sem exportar notação científica", async () => {
+  const { data } = await fixture(),
+    target = database()
+  const values = [0.0000001, Number.MIN_VALUE]
+  for (const [index, set] of data.setRecords
+    .filter((row) => row.type === "weight_reps")
+    .entries())
+    if (set.type === "weight_reps") set.weightKg = values[index]!
+  const text = historyCsv(data)
+  expect(text).toContain('"0,0000001"')
+  expect(text).not.toContain('"5e-324"')
+  await importCsv(text, "history", target)
+  expect(await target.setRecords.toArray()).toEqual(data.setRecords)
+})

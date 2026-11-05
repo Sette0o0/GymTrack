@@ -155,12 +155,27 @@ export async function restoreBackup(
 }
 
 export function csvCell(input: unknown) {
-  let value =
-    typeof input === "number"
-      ? String(input).replace(".", ",")
-      : String(input ?? "")
+  let value = typeof input === "number" ? csvNumber(input) : String(input ?? "")
   if (/^\s*[=+@-]/.test(value) || value.startsWith("'")) value = "'" + value
   return `"${value.replaceAll('"', '""')}"`
+}
+function csvNumber(input: number) {
+  const text = String(input)
+  if (!text.includes("e")) return text.replace(".", ",")
+  const [coefficient = "", exponent = "0"] = text.split("e")
+  const sign = coefficient.startsWith("-") ? "-" : ""
+  const unsigned = coefficient.replace(/^-/, "")
+  const digits = unsigned.replace(".", "")
+  const point =
+    (unsigned.includes(".") ? unsigned.indexOf(".") : unsigned.length) +
+    Number(exponent)
+  const expanded =
+    point <= 0
+      ? `0,${"0".repeat(-point)}${digits}`
+      : point >= digits.length
+        ? `${digits}${"0".repeat(point - digits.length)}`
+        : `${digits.slice(0, point)},${digits.slice(point)}`
+  return sign + expanded
 }
 export function csv(rows: unknown[][]) {
   return "\ufeff" + rows.map((row) => row.map(csvCell).join(";")).join("\r\n")

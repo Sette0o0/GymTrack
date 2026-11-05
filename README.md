@@ -29,7 +29,8 @@ Abra http://127.0.0.1:4173. Aguarde **Disponível offline** antes de desligar a 
 - Uma sessão ativa ou pausada por vez, inclusive entre abas. Salvamento automático, conclusão/desfazer, séries ignoradas e adição/remoção de séries.
 - Sugestões da última sessão concluída do mesmo exercício e tipo. Sem referência, a carga começa em 0 kg; repetições e duração usam a meta.
 - Histórico com snapshots de nomes, metas, tipos e observações, filtros por ficha/data e evolução textual por exercício.
-- Importação `.xlsx`, exportação CSV, backup/restauração JSON e lembrete de backup após sete dias.
+- Agrupamentos musculares no catálogo e na importação `.xlsx`, com todos os grupos exibidos nas fichas e snapshots nas sessões.
+- Importação e exportação CSV de fichas e histórico nas configurações, backup/restauração JSON e lembrete de backup após sete dias.
 - PWA instalável, cache completo e atualização explícita quando não há treino pendente ou alterações não salvas.
 
 Não há login, backend ou sincronização. Dados pertencem à origem (protocolo/domínio/porta) e ao navegador. Mantenha o mesmo domínio de uso e leve um backup JSON ao trocar de dispositivo, navegador ou origem. Limpar o armazenamento do navegador remove os registros locais. Solicitar persistência nas configurações depende da aprovação do navegador e não substitui backups.
@@ -63,19 +64,31 @@ Exemplo de cabeçalho e valores:
 
 - Sem coluna de treino, o nome da aba vira o código. Sem nome da ficha, usa-se o nome existente ou `Treino <código>`.
 - Séries e exercício são obrigatórios. Exercícios por peso exigem repetições positivas ou um intervalo crescente; as colunas de kg da planilha são ignoradas. As fichas não têm meta de carga: novas sessões usam os pesos anteriores ou começam em 0 kg. Tempo exige duração positiva. Escolha segundos ou minutos para valores numéricos; texto `mm:ss` independe dessa escolha.
+- Mapeie **Agrupamento muscular** quando a coluna existir. Também reconhecemos “Grupo muscular”, “Grupos musculares” e “Músculos”. O campo é opcional, aceita até 200 caracteres e vários grupos separados por vírgula. Pode ser editado no catálogo. Classificações importadas preenchidas atualizam o catálogo; células vazias preservam a classificação existente. Sessões anteriores mantêm sua classificação histórica.
 - Sem tipo explícito, duração preenchida indica tempo. A coluna de repetições também reconhece valores por tempo como `45 s`, `30–45 s`, `1–1,5 min` ou `00:45`. Intervalos usam o limite superior como meta única e preservam o texto original nas observações; a conversão aparece na prévia. Um tipo explícito e a coluna de duração mapeada têm prioridade. Intervalos sem unidade, como `8–12`, continuam sendo repetições.
 - Sufixos `s`, `seg`, `segundos`, `min` e `minutos` definem a unidade independentemente do seletor da aba; texto `mm:ss` também independe dessa escolha. Datas do Excel não são durações: use valores numéricos ou texto.
 - Corrija o mapeamento ou desmarque explicitamente as linhas inválidas. A confirmação é bloqueada enquanto houver erros incluídos.
 - Para códigos existentes, escolha ignorar, atualizar a ficha ou criar outra com sufixo. A atualização substitui os exercícios da ficha e preserva sessões anteriores.
 - Colunas separadas por série não são suportadas nesta versão. Ajuste-as para metas gerais antes de importar.
 
-O CSV usa UTF-8 com BOM, `;`, vírgula decimal e proteção contra interpretação de textos como fórmulas. O histórico exporta uma linha por série, incluindo a carga realmente registrada, status, metas de repetições/tempo e observações. O CSV de fichas não contém carga e o histórico não contém meta de kg. O CSV é para consulta; o formato de restauração é JSON.
+O CSV usa UTF-8 com BOM, `;`, vírgula decimal e proteção contra interpretação de textos como fórmulas. O histórico exporta uma linha por série, incluindo a carga realmente registrada, status, metas de repetições/tempo e observações. O CSV de fichas não contém carga e o histórico não contém meta de kg. Os novos CSVs incluem versão, IDs, agrupamentos musculares e ordem; o histórico preserva também os horários de conclusão das séries. Fichas vazias, sessões sem exercícios e exercícios sem séries têm linhas de referência para permitir sua importação.
+
+### Importar os CSVs das configurações
+
+Em **Configurações e dados**, use **Importar fichas CSV** ou **Importar histórico CSV**, selecione o arquivo, confira a prévia e confirme. O processamento funciona offline e grava o arquivo inteiro em uma transação. Erros informam a linha e impedem gravações parciais. Finalize ou cancele o treino pendente antes de importar.
+
+- Fichas existentes com exercícios são preservadas por ID ou código. Fichas vazias podem ser preenchidas; as demais são acrescentadas. O catálogo existente é reutilizado e suas classificações preenchidas são preservadas.
+- Sessões com o mesmo ID são ignoradas, preservando os dados locais. Reimportar o mesmo histórico não duplica séries. Os CSVs novos distinguem exercícios repetidos de mesmo nome por seus IDs.
+- O histórico pode ser importado antes das fichas. Referências ausentes são criadas arquivadas e podem ser preenchidas depois pelo CSV de fichas. Sessões em andamento chegam pausadas; cronômetros não continuam contando durante a transferência.
+- CSVs antigos exportados pelo GymTrack continuam aceitos. Campos que não estavam no arquivo não podem ser recuperados: a ordem dos exercícios segue a primeira ocorrência e o horário de conclusão das séries usa o fim/início da sessão. Exercícios repetidos ambíguos são recusados; use o JSON ou exporte novamente com a versão atual.
+
+Para transferir **todos** os dados, incluindo configurações, exercícios avulsos e metadados completos, use o backup JSON. CSV importa somente o conteúdo de fichas ou histórico presente no arquivo.
 
 ## Backup e restauração
 
 Em **Configurações**, baixe o backup completo `.json` e confira o arquivo nos downloads. Guarde uma cópia fora do navegador.
 
-O formato `gymtrack-backup`, esquema 2, contém data de exportação e as sete tabelas com seus IDs. Backups v1 são convertidos, removendo apenas as antigas metas de kg; pesos realmente registrados nas séries são preservados. O banco local também migra para a versão 2 sem alterar sessões pendentes. A restauração valida o formato, a versão, duplicações e relacionamentos antes de uma transação atômica. Arquivos de versão futura são recusados sem alterações.
+O formato `gymtrack-backup`, esquema 3, contém data de exportação e as sete tabelas com seus IDs, incluindo agrupamentos musculares e snapshots. Backups v1 e v2 são convertidos; metas antigas de kg são descartadas e pesos realmente registrados nas séries são preservados. O banco local migra para a versão 3 sem alterar medidas, estados ou cronômetros de sessões pendentes. Registros antigos sem classificação permanecem sem grupo, sem inferir a classificação histórica pelo catálogo atual. A restauração valida o formato, a versão, duplicações e relacionamentos antes de uma transação atômica. Arquivos de versão futura são recusados sem alterações.
 
 - **Mesclar:** mantém registros locais com IDs existentes e acrescenta IDs novos. Conflitos de código de ficha, de séries ou mais de uma sessão pendente bloqueiam a operação completa.
 - **Substituir:** exige baixar um backup nesta sessão ou digitar `SUBSTITUIR`, além da confirmação final.
@@ -163,6 +176,6 @@ Consulte [o roteiro de validação em aparelhos reais](docs/VALIDACAO.md). Emula
 
 Adicione componentes pela raiz com `npx shadcn add <componente> -c apps/web`. Leia `AGENTS.md` e os guias da versão instalada em `node_modules/next/dist/docs` antes de alterar APIs do Next.js.
 
-Para evoluir o banco, mantenha a definição de `version(1)` e acrescente `version(2).stores(...).upgrade(...)`; nunca recrie nem apague o banco em uma atualização. Adicione fixtures da versão anterior e testes de migração/restauração antes de mudar o formato de backup. Qualquer nova tela ou recurso deve passar pelo teste offline sem visita prévia.
+Para evoluir o banco, mantenha as versões já declaradas e acrescente `version(n + 1).stores(...).upgrade(...)`; nunca recrie nem apague o banco em uma atualização. Adicione fixtures da versão anterior e testes de migração/restauração antes de mudar o formato de backup. Qualquer nova tela ou recurso deve passar pelo teste offline sem visita prévia.
 
 Gráficos, recordes, descanso cronometrado, superséries, duplicação de fichas, drag-and-drop e exportação XLSX ficam para uma próxima versão.

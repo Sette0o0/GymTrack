@@ -208,7 +208,7 @@ Preferências, unidades e versão dos dados
 
 Todas as entidades principais utilizarão UUIDs. Os dados terão campos de criação e atualização quando necessário.
 
-O esquema local e os backups usam a versão 2. A migração do IndexedDB retira apenas `targetWeight` legado das fichas e dos snapshots; cargas reais, repetições, durações, IDs, observações, estados e recuperação de sessões são preservados. Backups v1 são convertidos antes da validação/restauração e versões futuras desconhecidas são recusadas sem alterar o banco.
+O esquema local e os backups usam a versão 3. A migração do IndexedDB retira apenas `targetWeight` legado das fichas e dos snapshots; cargas reais, repetições, durações, IDs, observações, estados e recuperação de sessões são preservados. Backups v1 e v2 são convertidos antes da validação/restauração e versões futuras desconhecidas são recusadas sem alterar o banco.
 
 Em `workoutSessions`, eu também guardaria a data local do treino, além dos timestamps, para permitir filtros por dia sem problemas de fuso horário.
 
@@ -222,6 +222,14 @@ Em `workoutSessions`, eu também guardaria a data local do treino, além dos tim
 6. A exclusão definitiva de histórico precisa de confirmação.
 7. Alterações que envolvem múltiplas tabelas devem utilizar transações do IndexedDB.
 8. Mudanças futuras no esquema devem ter migrações versionadas.
+
+### Agrupamentos musculares e CSV — implementado em 05/11/2026
+
+- Catálogo com `muscleGroup` opcional (até 200 caracteres, grupos separados por vírgula). Importação Excel com mapeamento e prévia da classificação. Fichas mostram todos os grupos, sem repetições de grafia/acentuação; sessões e histórico usam `muscleGroupSnapshot` para preservar a classificação vigente no início.
+- Migração Dexie v3 acrescenta classificações vazias aos registros antigos, sem inferir grupos históricos ou mudar medidas, observações, IDs, estados e cronômetros. JSON v3 mantém compatibilidade de leitura com v1/v2.
+- Configurações importam CSV de fichas e histórico com prévia, confirmação e transação única. Fichas existentes preenchidas e sessões com IDs existentes são preservadas; fichas vazias podem ser preenchidas. Revalidação transacional impede que uma prévia antiga sobrescreva alterações posteriores.
+- CSV exportado versionado com IDs, agrupamentos, ordem e horários das séries. Linhas de referência preservam fichas vazias, sessões sem exercícios e exercícios sem séries. Importar histórico antes das fichas cria referências arquivadas; importar a ficha depois preenche essas referências. Sessões importadas em andamento ficam pausadas.
+- CSVs antigos continuam aceitos com aviso dos campos reconstruídos. Dados ambíguos, como exercícios de mesmo nome com séries duplicadas sem IDs próprios, são recusados com orientação para usar JSON ou exportar novamente. O JSON continua sendo o backup completo, incluindo configurações e catálogo avulso.
 
 ## 5. Telas do aplicativo
 

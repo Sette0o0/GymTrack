@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from "vitest"
 import { GymDatabase } from "@/db/database"
+import Dexie from "dexie"
 import { newId } from "@/lib/schema"
 import { muscleGroups, templateMuscleGroups } from "@/lib/muscle-groups"
 import {
@@ -8,7 +9,12 @@ import {
   importRows,
   type SheetInput,
 } from "@/services/import"
-import { startSession, changeSession } from "@/services/sessions"
+import {
+  startSession,
+  changeSession,
+  toggleTimer,
+  updateSet,
+} from "@/services/sessions"
 import { snapshot } from "@/db/repository"
 import { validateBackup, restoreBackup } from "@/services/backup"
 
@@ -102,4 +108,57 @@ it("recusa classificação longa antes de gravar", async () => {
   expect(rows[0]?.errors.join()).toContain("Agrupamento muscular")
   await expect(importRows(rows, {}, db)).rejects.toThrow()
   expect(await db.exerciseDefinitions.count()).toBe(0)
+})
+
+it("migra IndexedDB v2 para v3 sem alterar sessão pendente, medidas ou cronômetro", async () => {
+  const source = database()
+  await importRows(previewImport([sheet()]), {}, source)
+  await startSession((await source.workoutTemplates.toArray())[0]!.id, source)
+  const sets = await source.setRecords.toArray()
+  await updateSet(
+    sets.find((row) => row.type === "weight_reps")!.id,
+    { weightKg: 57.5, repetitions: 9 },
+    source
+  )
+  await toggleTimer(sets.find((row) => row.type === "time")!.id, source)
+  const before = await snapshot(source)
+  const name = `legacy-v2-${newId()}`
+  const legacy = new Dexie(name)
+  legacy
+    .version(2)
+    .stores(
+      Object.fromEntries(
+        source.tables.map((table) => [
+          table.name,
+          [
+            table.schema.primKey.src,
+            ...table.schema.indexes.map((index) => index.src),
+          ].join(", "),
+        ])
+      )
+    )
+  await legacy.open()
+  for (const table of source.tables) {
+    const rows = (await table.toArray()).map((row) => {
+      const old = { ...row }
+      delete old.muscleGroup
+      delete old.muscleGroupSnapshot
+      return old
+    })
+    await legacy.table(table.name).bulkAdd(rows)
+  }
+  legacy.close()
+  const upgraded = new GymDatabase(name)
+  databases.push(upgraded)
+  const after = await snapshot(upgraded)
+  expect(upgraded.verno).toBe(3)
+  expect(after.setRecords).toEqual(before.setRecords)
+  expect(after.workoutSessions).toEqual(before.workoutSessions)
+  expect(after.templateExercises).toEqual(before.templateExercises)
+  expect(after.exerciseDefinitions).toEqual(
+    before.exerciseDefinitions.map((row) => ({ ...row, muscleGroup: "" }))
+  )
+  expect(after.sessionExercises).toEqual(
+    before.sessionExercises.map((row) => ({ ...row, muscleGroupSnapshot: "" }))
+  )
 })
